@@ -21,5 +21,8 @@
   },
   "observability": {
     "enabled": true
+  },
+  "vars": {
+    "NEXT_PUBLIC_API_URL": "https://task-tribe-backend.onrender.com/api"
   }
 }

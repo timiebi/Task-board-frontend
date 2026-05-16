@@ -844,70 +844,101 @@ button.surface-item-title:hover {
   color: var(--muted);
 }
 
-/* ─── Dashboard ─── */
-.dash-stats {
+/* ─── Dashboard overview strip (same card as sections below) ─── */
+.dash-overview-strip {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
-  gap: 12px;
-  margin-bottom: 16px;
+  border-bottom: 1px solid var(--border-subtle);
 }
 
 @media (min-width: 640px) {
-  .dash-stats {
+  .dash-overview-strip {
     grid-template-columns: repeat(4, 1fr);
   }
 }
 
-.dash-stat {
-  position: relative;
-  padding: 18px 16px 16px 20px;
-  border: 1px solid var(--surface-border);
-  border-radius: var(--radius);
-  background: var(--card);
-  box-shadow: var(--shadow-sm);
-  overflow: hidden;
+.dash-metric {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0;
+  padding: 0;
+  border: none;
+  border-right: 1px solid var(--border-subtle);
+  border-bottom: 1px solid var(--border-subtle);
+  background: transparent;
+  text-align: left;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+  transition: background 0.15s;
 }
 
-.dash-stat::before {
-  content: "";
-  position: absolute;
-  inset: 0 auto 0 0;
-  width: 3px;
-  background: var(--accent);
-  border-radius: 3px 0 0 3px;
-  opacity: 0.75;
+.dash-overview-strip .dash-metric:nth-child(2n) {
+  border-right: none;
 }
 
-.dash-stat.is-alert::before {
-  background: var(--danger);
+@media (min-width: 640px) {
+  .dash-overview-strip .dash-metric {
+    border-bottom: none;
+    border-right: 1px solid var(--border-subtle);
+  }
+
+  .dash-overview-strip .dash-metric:nth-child(2n) {
+    border-right: 1px solid var(--border-subtle);
+  }
+
+  .dash-overview-strip .dash-metric:last-child {
+    border-right: none;
+  }
 }
 
-.dash-stat-icon {
-  margin-bottom: 10px;
-  color: var(--accent);
+.dash-metric-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border-subtle);
+  background: var(--surface-raised);
+  font-size: 0.6875rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: var(--muted);
 }
 
-.dash-stat.is-alert .dash-stat-icon {
+.dash-metric-icon {
+  width: 14px;
+  height: 14px;
+  flex-shrink: 0;
+  color: var(--text-secondary);
+}
+
+.dash-metric.is-alert .dash-metric-icon {
   color: var(--danger);
 }
 
-.dash-stat-value {
-  margin: 0;
+.dash-metric-value {
+  display: block;
+  padding: 16px;
   font-size: 1.75rem;
   font-weight: 700;
   letter-spacing: -0.03em;
   color: var(--text);
   font-variant-numeric: tabular-nums;
+  line-height: 1;
 }
 
-.dash-stat-label {
-  margin: 4px 0 0;
-  font-size: 0.6875rem;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  color: var(--muted);
+.dash-metric:hover {
+  background: var(--surface-hover);
 }
+
+.dash-metric:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+  z-index: 1;
+}
+
 
 .surface--dashboard,
 .surface--sections {
@@ -1646,4 +1677,143 @@ ion-content.main-content {
   .btn-primary {
     min-height: 44px;
   }
+}
+
+/* ─── Header settings icon ─── */
+.header-settings-btn {
+  --color: var(--accent);
+  margin-inline-end: 4px;
+}
+
+.header-settings-btn ion-icon {
+  font-size: 1.35rem;
+  color: var(--accent);
+  opacity: 0.92;
+}
+
+.header-settings-btn:hover ion-icon {
+  color: var(--accent);
+  opacity: 1;
+}
+
+/* ─── Buttons loading ─── */
+.btn.is-loading {
+  position: relative;
+  pointer-events: none;
+  opacity: 0.85;
+}
+
+.btn-spinner {
+  display: inline-block;
+  width: 1rem;
+  height: 1rem;
+  margin-right: 0.35rem;
+  border: 2px solid color-mix(in srgb, currentColor 30%, transparent);
+  border-top-color: currentColor;
+  border-radius: 50%;
+  animation: btn-spin 0.65s linear infinite;
+  vertical-align: -0.15em;
+}
+
+.btn-label--loading {
+  opacity: 0.9;
+}
+
+@keyframes btn-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* ─── Date / time fields ─── */
+.datetime-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.field-hint {
+  margin: -2px 0 0;
+  font-size: 0.8125rem;
+  color: var(--muted);
+}
+
+.field-optional {
+  margin-left: 6px;
+  font-weight: 500;
+  text-transform: none;
+  letter-spacing: 0;
+  color: var(--muted);
+}
+
+.datetime-field-input-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.datetime-field-icon {
+  position: absolute;
+  left: 12px;
+  width: 1rem;
+  height: 1rem;
+  color: var(--muted);
+  pointer-events: none;
+}
+
+.datetime-field-input {
+  padding-left: 2.5rem;
+  color-scheme: light dark;
+}
+
+.datetime-field-input::-webkit-calendar-picker-indicator {
+  cursor: pointer;
+  opacity: 0.7;
+}
+
+.form-row-2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.checkbox-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  font-size: 0.875rem;
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+
+.checkbox-row input {
+  margin-top: 3px;
+  accent-color: var(--accent);
+}
+
+.checkbox-row-hint {
+  display: block;
+  margin-top: 2px;
+  font-size: 0.8125rem;
+  color: var(--muted);
+  font-weight: 400;
+}
+
+.reminder-toggle-card {
+  padding: 12px 14px;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  background: var(--surface-raised);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.badge-reminder {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--accent);
+  background: var(--accent-soft);
+  border-color: transparent;
 }

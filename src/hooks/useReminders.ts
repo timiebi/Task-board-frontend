@@ -1,21 +1,23 @@
 "use client";
 
 import { useCallback, useEffect, useRef } from "react";
-import { useDueReminders, useEventMutations } from "@/hooks/queries";
-import type { Event } from "@/lib/types";
+import { useDueReminders, useEventMutations, useTaskMutations } from "@/hooks/queries";
+import type { Event, Task } from "@/lib/types";
 
 export function useReminders(enabled: boolean) {
-  const notifiedRef = useRef<Set<number>>(new Set());
-  const { data: due = [] } = useDueReminders(enabled);
+  const notifiedEvents = useRef<Set<number>>(new Set());
+  const notifiedTasks = useRef<Set<number>>(new Set());
+  const { data } = useDueReminders(enabled);
   const { markNotified } = useEventMutations();
+  const { markReminded } = useTaskMutations("today");
 
-  const showNotification = useCallback(
+  const notifyEvent = useCallback(
     (event: Event) => {
       if (typeof window === "undefined" || !("Notification" in window)) return;
       if (Notification.permission !== "granted") return;
-      if (notifiedRef.current.has(event.id)) return;
+      if (notifiedEvents.current.has(event.id)) return;
 
-      notifiedRef.current.add(event.id);
+      notifiedEvents.current.add(event.id);
       new Notification(`Reminder: ${event.title}`, {
         body:
           event.description ||
@@ -23,20 +25,35 @@ export function useReminders(enabled: boolean) {
         tag: `event-${event.id}`,
       });
       markNotified.mutate(event.id, {
-        onError: () => {
-          notifiedRef.current.delete(event.id);
-        },
+        onError: () => notifiedEvents.current.delete(event.id),
       });
     },
     [markNotified]
   );
 
+  const notifyTask = useCallback(
+    (task: Task) => {
+      if (typeof window === "undefined" || !("Notification" in window)) return;
+      if (Notification.permission !== "granted") return;
+      if (notifiedTasks.current.has(task.id)) return;
+
+      notifiedTasks.current.add(task.id);
+      new Notification(`Task reminder: ${task.title}`, {
+        body: task.description || "Your task is due.",
+        tag: `task-${task.id}`,
+      });
+      markReminded.mutate(task.id, {
+        onError: () => notifiedTasks.current.delete(task.id),
+      });
+    },
+    [markReminded]
+  );
+
   useEffect(() => {
-    if (!enabled || !due.length) return;
-    for (const event of due) {
-      showNotification(event);
-    }
-  }, [due, enabled, showNotification]);
+    if (!enabled || !data) return;
+    for (const event of data.events) notifyEvent(event);
+    for (const task of data.tasks) notifyTask(task);
+  }, [data, enabled, notifyEvent, notifyTask]);
 
   const requestPermission = useCallback(async () => {
     if (typeof window === "undefined" || !("Notification" in window)) {

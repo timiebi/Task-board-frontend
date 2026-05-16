@@ -25,4 +25,5 @@ const nextConfig: NextConfig = {
 
 export default nextConfig;
 
-import('@opennextjs/cloudflare').then(m => m.initOpenNextCloudflareForDev());
+// OpenNext Cloudflare dev init breaks local `next dev` / `next build` (ESM require error).
+// Use `npm run preview` to test the Cloudflare worker build locally.

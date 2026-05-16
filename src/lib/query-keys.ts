@@ -5,6 +5,7 @@ export const queryKeys = {
   tasks: {
     root: ["tasks"] as const,
     list: (filter: "today" | "daily" | "all") => ["tasks", "list", filter] as const,
+    dueReminders: ["tasks", "due-reminders"] as const,
   },
   notebooks: {
     root: ["notebooks"] as const,

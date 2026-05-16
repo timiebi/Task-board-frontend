@@ -6,7 +6,9 @@ import { usePlanMutations, usePlans } from "@/hooks/queries";
 import type { Plan } from "@/lib/types";
 import { formatDate } from "@/lib/utils";
 import { Modal } from "../Modal";
+import { Button } from "../ui/Button";
 import { ConfirmModal } from "../ui/ConfirmModal";
+import { DateField } from "../ui/DateField";
 import { EmptyState } from "../ui/EmptyState";
 import { PageShell } from "../ui/PageShell";
 import { SurfacePanel } from "../ui/SurfacePanel";
@@ -31,6 +33,7 @@ export function PlansPanel() {
   const [modalOpen, setModalOpen] = useState(false);
   const [editing, setEditing] = useState<Partial<Plan> | null>(null);
   const [deleteId, setDeleteId] = useState<number | null>(null);
+  const saving = create.isPending || update.isPending;
 
   const openCreate = () => {
     setEditing(emptyPlan());
@@ -54,9 +57,9 @@ export function PlansPanel() {
       title="Plans"
       subtitle="Bigger goals and projects"
       action={
-        <button type="button" onClick={openCreate} className="btn-primary">
+        <Button type="button" onClick={openCreate}>
           <Plus className="h-4 w-4" /> New plan
-        </button>
+        </Button>
       }
     >
       <SurfacePanel
@@ -69,9 +72,9 @@ export function PlansPanel() {
           <EmptyState
             variant="plans"
             action={
-              <button type="button" onClick={openCreate} className="btn-primary">
+              <Button type="button" onClick={openCreate}>
                 <Plus className="h-4 w-4" /> Create plan
-              </button>
+              </Button>
             }
           />
         ) : (
@@ -128,52 +131,61 @@ export function PlansPanel() {
       <Modal
         title={editing?.id ? "Edit plan" : "New plan"}
         open={modalOpen}
-        onClose={() => setModalOpen(false)}
+        onClose={() => !saving && setModalOpen(false)}
       >
-        <div className="space-y-4">
+        <form
+          className="modal-form"
+          onSubmit={(e) => {
+            e.preventDefault();
+            void save();
+          }}
+        >
           <div>
-            <label className="label">Title</label>
+            <label className="label" htmlFor="plan-title">
+              Title
+            </label>
             <input
+              id="plan-title"
               className="input"
               value={editing?.title ?? ""}
               onChange={(e) => setEditing((x) => ({ ...x!, title: e.target.value }))}
+              required
             />
           </div>
           <div>
-            <label className="label">Content</label>
+            <label className="label" htmlFor="plan-content">
+              Content
+            </label>
             <textarea
+              id="plan-content"
               className="input min-h-[160px]"
+              rows={6}
               value={editing?.content ?? ""}
               onChange={(e) => setEditing((x) => ({ ...x!, content: e.target.value }))}
             />
           </div>
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="label">Start date</label>
-              <input
-                type="date"
-                className="input"
-                value={editing?.start_date ?? ""}
-                onChange={(e) =>
-                  setEditing((x) => ({ ...x!, start_date: e.target.value || null }))
-                }
-              />
-            </div>
-            <div>
-              <label className="label">End date</label>
-              <input
-                type="date"
-                className="input"
-                value={editing?.end_date ?? ""}
-                onChange={(e) =>
-                  setEditing((x) => ({ ...x!, end_date: e.target.value || null }))
-                }
-              />
-            </div>
+          <div className="form-row-2">
+            <DateField
+              id="plan-start"
+              label="Start date"
+              value={editing?.start_date ?? ""}
+              onChange={(v) => setEditing((x) => ({ ...x!, start_date: v || null }))}
+              optional
+            />
+            <DateField
+              id="plan-end"
+              label="End date"
+              value={editing?.end_date ?? ""}
+              onChange={(v) => setEditing((x) => ({ ...x!, end_date: v || null }))}
+              optional
+            />
           </div>
           <div>
-            <label className="label">Status</label>
+            <label className="label" htmlFor="plan-status">
+              Status
+            </label>
             <select
+              id="plan-status"
               className="input"
               value={editing?.status ?? "active"}
               onChange={(e) =>
@@ -188,15 +200,15 @@ export function PlansPanel() {
               <option value="done">Done</option>
             </select>
           </div>
-          <div className="flex justify-end gap-2">
-            <button type="button" className="btn-ghost" onClick={() => setModalOpen(false)}>
+          <div className="modal-actions">
+            <Button type="button" variant="ghost" onClick={() => setModalOpen(false)} disabled={saving}>
               Cancel
-            </button>
-            <button type="button" className="btn-primary" onClick={save}>
-              Save
-            </button>
+            </Button>
+            <Button type="submit" loading={saving}>
+              Save plan
+            </Button>
           </div>
-        </div>
+        </form>
       </Modal>
 
       <ConfirmModal
@@ -205,6 +217,7 @@ export function PlansPanel() {
         message="This cannot be undone."
         confirmLabel="Delete"
         variant="danger"
+        loading={remove.isPending}
         onConfirm={() => deleteId !== null && void removePlan(deleteId)}
         onClose={() => setDeleteId(null)}
       />

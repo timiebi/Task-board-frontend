@@ -10,7 +10,9 @@ import {
   toDatetimeLocalValue,
 } from "@/lib/utils";
 import { Modal } from "../Modal";
+import { Button } from "../ui/Button";
 import { ConfirmModal } from "../ui/ConfirmModal";
+import { DateTimeField } from "../ui/DateTimeField";
 import { EmptyState } from "../ui/EmptyState";
 import { PageShell } from "../ui/PageShell";
 import { SurfacePanel } from "../ui/SurfacePanel";
@@ -39,6 +41,7 @@ export function EventsPanel({
   const [startsLocal, setStartsLocal] = useState("");
   const [remindLocal, setRemindLocal] = useState("");
   const [deleteId, setDeleteId] = useState<number | null>(null);
+  const saving = create.isPending || update.isPending;
 
   const openCreate = () => {
     const e = emptyEvent();
@@ -83,9 +86,9 @@ export function EventsPanel({
               <BellRing className="h-4 w-4" /> Notify
             </button>
           )}
-          <button type="button" onClick={openCreate} className="btn-primary">
+          <Button type="button" onClick={openCreate}>
             <Plus className="h-4 w-4" /> New event
-          </button>
+          </Button>
         </div>
       }
     >
@@ -101,9 +104,9 @@ export function EventsPanel({
           <EmptyState
             variant="events"
             action={
-              <button type="button" onClick={openCreate} className="btn-primary">
+              <Button type="button" onClick={openCreate}>
                 <Plus className="h-4 w-4" /> Add reminder
-              </button>
+              </Button>
             }
           />
         ) : (
@@ -150,52 +153,53 @@ export function EventsPanel({
       <Modal
         title={editing?.id ? "Edit event" : "New event"}
         open={modalOpen}
-        onClose={() => setModalOpen(false)}
+        onClose={() => !saving && setModalOpen(false)}
       >
-        <div className="space-y-4">
+        <form
+          className="modal-form"
+          onSubmit={(e) => {
+            e.preventDefault();
+            void save();
+          }}
+        >
           <div>
-            <label className="label">Title</label>
+            <label className="label" htmlFor="event-title">Title</label>
             <input
+              id="event-title"
               className="input"
               value={editing?.title ?? ""}
               onChange={(e) => setEditing((x) => ({ ...x!, title: e.target.value }))}
+              required
             />
           </div>
           <div>
-            <label className="label">Description</label>
+            <label className="label" htmlFor="event-desc">Description</label>
             <textarea
+              id="event-desc"
               className="input"
+              rows={3}
               value={editing?.description ?? ""}
               onChange={(e) => setEditing((x) => ({ ...x!, description: e.target.value }))}
             />
           </div>
-          <div>
-            <label className="label">Starts at</label>
-            <input
-              type="datetime-local"
-              className="input"
-              value={startsLocal}
-              onChange={(e) => setStartsLocal(e.target.value)}
-            />
-          </div>
-          <div>
-            <label className="label">Remind at (notification)</label>
-            <input
-              type="datetime-local"
-              className="input"
-              value={remindLocal}
-              onChange={(e) => setRemindLocal(e.target.value)}
-            />
-          </div>
-          <div className="flex justify-end gap-2">
-            <button type="button" className="btn-ghost" onClick={() => setModalOpen(false)}>
+          <DateTimeField id="event-starts" label="Starts at" value={startsLocal} onChange={setStartsLocal} />
+          <DateTimeField
+            id="event-remind"
+            label="Remind at"
+            hint="Browser notification time"
+            value={remindLocal}
+            onChange={setRemindLocal}
+            optional
+          />
+          <div className="modal-actions">
+            <Button type="button" variant="ghost" onClick={() => setModalOpen(false)} disabled={saving}>
               Cancel
-            </button>
-            <button type="button" className="btn-primary" onClick={save}>
-              Save
-            </button>
+            </Button>
+            <Button type="submit" loading={saving}>
+              Save event
+            </Button>
           </div>
-        </div>
+        </form>
       </Modal>
 
       <ConfirmModal
@@ -204,6 +208,7 @@ export function EventsPanel({
         message="This cannot be undone."
         confirmLabel="Delete"
         variant="danger"
+        loading={remove.isPending}
         onConfirm={() => deleteId !== null && void removeEvent(deleteId)}
         onClose={() => setDeleteId(null)}
       />

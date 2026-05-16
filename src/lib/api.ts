@@ -9,7 +9,7 @@ function unwrapList<T>(data: T[] | { results: T[] }): T[] {
 }
 
 export const api = {
-  health: () => apiRequest<{ status: string }>("GET", "/health/"),
+  health: () => apiRequest<{ status: string }>("GET","/health/"),
   auth: {
     login: (username: string, password: string) =>
       apiRequest<{ token: string; user: { id: number; username: string; email: string } }>(
@@ -74,6 +74,9 @@ export const api = {
       apiRequest<Task>("PATCH", `/tasks/${id}/`, body),
     toggleComplete: (id: number) =>
       apiRequest<Task>("POST", `/tasks/${id}/toggle_complete/`),
+    dueReminders: () => apiRequest<Task[]>("GET", "/tasks/due_reminders/"),
+    markReminded: (id: number) =>
+      apiRequest<Task>("POST", `/tasks/${id}/mark_reminded/`),
     delete: (id: number) => apiRequest<void>("DELETE", `/tasks/${id}/`),
   },
   events: {

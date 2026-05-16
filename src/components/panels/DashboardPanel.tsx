@@ -40,35 +40,34 @@ export function DashboardPanel() {
 
   return (
     <PageShell title="Dashboard" subtitle={dateLabel}>
-      <div className="dash-stats">
-        <DashStat
-          icon={CheckSquare}
-          label="Today's tasks"
-          value={pendingTasks.length}
-          onClick={() => navigate("tasks")}
-        />
-        <DashStat
-          icon={CheckSquare}
-          label="Overdue"
-          value={overdueCount}
-          alert={overdueCount > 0}
-          onClick={() => navigate("tasks")}
-        />
-        <DashStat
-          icon={FileText}
-          label="Notes"
-          value={notesCount}
-          onClick={() => navigate("notes")}
-        />
-        <DashStat
-          icon={Calendar}
-          label="Upcoming"
-          value={events.length}
-          onClick={() => navigate("events")}
-        />
-      </div>
-
       <SurfacePanel className="surface--dashboard">
+        <div className="dash-overview-strip" role="region" aria-label="Overview">
+          <DashStat
+            icon={CheckSquare}
+            label="Today's tasks"
+            value={pendingTasks.length}
+            onClick={() => navigate("tasks")}
+          />
+          <DashStat
+            icon={CheckSquare}
+            label="Overdue"
+            value={overdueCount}
+            alert={overdueCount > 0}
+            onClick={() => navigate("tasks")}
+          />
+          <DashStat
+            icon={FileText}
+            label="Notes"
+            value={notesCount}
+            onClick={() => navigate("notes")}
+          />
+          <DashStat
+            icon={Calendar}
+            label="Upcoming"
+            value={events.length}
+            onClick={() => navigate("events")}
+          />
+        </div>
         <div className="dash-grid">
           <section className="dash-section">
             <button
@@ -193,13 +192,15 @@ function DashStat({
   return (
     <button
       type="button"
-      className={`dash-stat dash-stat--link ${alert ? "is-alert" : ""}`}
+      className={`dash-metric ${alert ? "is-alert" : ""}`}
       onClick={onClick}
       aria-label={`${label}: ${value}. Go to ${label.toLowerCase()}.`}
     >
-      <Icon className="dash-stat-icon h-5 w-5" />
-      <p className="dash-stat-value">{value}</p>
-      <p className="dash-stat-label">{label}</p>
+      <span className="dash-metric-header">
+        <Icon className="dash-metric-icon" aria-hidden />
+        <span>{label}</span>
+      </span>
+      <span className="dash-metric-value">{value}</span>
     </button>
   );
 }

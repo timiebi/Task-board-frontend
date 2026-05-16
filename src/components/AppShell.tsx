@@ -147,8 +147,13 @@ export function AppShell() {
               </IonButtons>
               <IonTitle>{titles[tab]}</IonTitle>
               <IonButtons slot="end">
-                <IonButton fill="clear" onClick={() => navigate("settings")} aria-label="Settings">
-                  <IonIcon icon={settingsOutline} />
+                <IonButton
+                  fill="clear"
+                  className="header-settings-btn"
+                  onClick={() => navigate("settings")}
+                  aria-label="Settings"
+                >
+                  <IonIcon icon={settingsOutline} slot="icon-only" />
                 </IonButton>
               </IonButtons>
             </IonToolbar>

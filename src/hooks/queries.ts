@@ -52,7 +52,14 @@ export function useTaskMutations(filter: "today" | "daily" | "all") {
     onSuccess: invalidate,
   });
 
-  return { create, update, toggleComplete, remove };
+  const markReminded = useMutation({
+    mutationFn: (id: number) => api.tasks.markReminded(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.tasks.dueReminders });
+    },
+  });
+
+  return { create, update, toggleComplete, remove, markReminded };
 }
 
 export function useNotebooks() {
@@ -191,8 +198,14 @@ export function useEventMutations() {
 
 export function useDueReminders(enabled: boolean) {
   return useQuery({
-    queryKey: queryKeys.events.dueReminders,
-    queryFn: () => api.events.dueReminders(),
+    queryKey: [...queryKeys.events.dueReminders, ...queryKeys.tasks.dueReminders],
+    queryFn: async () => {
+      const [events, tasks] = await Promise.all([
+        api.events.dueReminders(),
+        api.tasks.dueReminders(),
+      ]);
+      return { events, tasks };
+    },
     enabled,
     refetchInterval: enabled ? 30_000 : false,
     retry: false,

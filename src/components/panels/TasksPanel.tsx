@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { Plus, Trash2 } from "lucide-react";
+import { useMemo, useState } from "react";
+import { Bell, Plus, Trash2 } from "lucide-react";
 import { useTaskMutations, useTasks } from "@/hooks/queries";
 import type { Task } from "@/lib/types";
 import {
@@ -9,10 +9,13 @@ import {
   fromDatetimeLocalValue,
   isOverdue,
   priorityBadgeClass,
+  sortTasksByUrgency,
   toDatetimeLocalValue,
 } from "@/lib/utils";
 import { Modal } from "../Modal";
+import { Button } from "../ui/Button";
 import { ConfirmModal } from "../ui/ConfirmModal";
+import { DateTimeField } from "../ui/DateTimeField";
 import { EmptyState } from "../ui/EmptyState";
 import { FilterPills } from "../ui/FilterPills";
 import { PageShell } from "../ui/PageShell";
@@ -22,6 +25,8 @@ const emptyTask = (): Partial<Task> => ({
   title: "",
   description: "",
   due_date: null,
+  remind_at: null,
+  reminded: false,
   priority: "medium",
   status: "todo",
   is_daily: false,
@@ -35,38 +40,40 @@ export function TasksPanel() {
   const [modalOpen, setModalOpen] = useState(false);
   const [editing, setEditing] = useState<Partial<Task> | null>(null);
   const [dueLocal, setDueLocal] = useState("");
+  const [remindLocal, setRemindLocal] = useState("");
+  const [reminderEnabled, setReminderEnabled] = useState(false);
   const [deleteId, setDeleteId] = useState<number | null>(null);
+
+  const saving = create.isPending || update.isPending;
+  const sortedTasks = useMemo(() => sortTasksByUrgency(tasks), [tasks]);
 
   const openCreate = () => {
     setEditing(emptyTask());
     setDueLocal("");
+    setRemindLocal("");
+    setReminderEnabled(false);
     setModalOpen(true);
   };
 
   const openEdit = (task: Task) => {
     setEditing({ ...task });
     setDueLocal(toDatetimeLocalValue(task.due_date));
+    setRemindLocal(toDatetimeLocalValue(task.remind_at));
+    setReminderEnabled(!!task.remind_at);
     setModalOpen(true);
   };
 
   const save = async () => {
     if (!editing?.title?.trim()) return;
-    const body = {
+    const body: Partial<Task> = {
       ...editing,
       due_date: fromDatetimeLocalValue(dueLocal),
+      remind_at: reminderEnabled ? fromDatetimeLocalValue(remindLocal) : null,
+      reminded: false,
     };
     if (editing.id) await update.mutateAsync({ id: editing.id, body });
     else await create.mutateAsync(body);
     setModalOpen(false);
-  };
-
-  const toggle = (id: number) => {
-    void toggleComplete.mutateAsync(id);
-  };
-
-  const removeTask = async (id: number) => {
-    await remove.mutateAsync(id);
-    setDeleteId(null);
   };
 
   const filterLabel =
@@ -77,9 +84,9 @@ export function TasksPanel() {
       title="Tasks"
       subtitle="What you need to do"
       action={
-        <button type="button" onClick={openCreate} className="btn-primary">
+        <Button type="button" onClick={openCreate}>
           <Plus className="h-4 w-4" /> New task
-        </button>
+        </Button>
       }
     >
       <SurfacePanel
@@ -98,28 +105,29 @@ export function TasksPanel() {
       >
         {loading ? (
           <p className="surface-loading">Loading tasks…</p>
-        ) : tasks.length === 0 ? (
+        ) : sortedTasks.length === 0 ? (
           <EmptyState
             variant="tasks"
             action={
-              <button type="button" onClick={openCreate} className="btn-primary">
+              <Button type="button" onClick={openCreate}>
                 <Plus className="h-4 w-4" /> Add task
-              </button>
+              </Button>
             }
           />
         ) : (
           <ul className="surface-list">
-            {tasks.map((task) => (
+            {sortedTasks.map((task) => (
               <li key={task.id}>
                 <div
                   className={`surface-item surface-item--row ${
-                    task.completed ? "is-done" : ""
+                    task.completed ? "is-done" : " "
                   }`}
                 >
                   <input
                     type="checkbox"
                     checked={task.completed}
-                    onChange={() => toggle(task.id)}
+                    onChange={() => void toggleComplete.mutateAsync(task.id)}
+                    disabled={toggleComplete.isPending}
                     className="surface-checkbox"
                     aria-label={`Mark "${task.title}" complete`}
                   />
@@ -143,6 +151,11 @@ export function TasksPanel() {
                         {task.priority}
                       </span>
                       {task.is_daily && <span className="badge badge-daily">daily</span>}
+                      {task.remind_at && (
+                        <span className="badge badge-reminder">
+                          <Bell className="inline h-3 w-3" /> remind
+                        </span>
+                      )}
                       {task.due_date && (
                         <span
                           className="surface-item-meta"
@@ -175,29 +188,46 @@ export function TasksPanel() {
       <Modal
         title={editing?.id ? "Edit task" : "New task"}
         open={modalOpen}
-        onClose={() => setModalOpen(false)}
+        onClose={() => !saving && setModalOpen(false)}
       >
-        <div className="space-y-4">
+        <form
+          className="modal-form"
+          onSubmit={(e) => {
+            e.preventDefault();
+            void save();
+          }}
+        >
           <div>
-            <label className="label">Title</label>
+            <label className="label" htmlFor="task-title"> Title</label>
             <input
+              id="task-title"
               className="input"
               value={editing?.title ?? ""}
               onChange={(e) => setEditing((x) => ({ ...x!, title: e.target.value }))}
+              required
             />
           </div>
           <div>
-            <label className="label">Description</label>
+            <label className="label" htmlFor="task-desc">
+              Description
+            </label>
             <textarea
+              id="task-desc"
               className="input"
+              rows={3}
               value={editing?.description ?? ""}
-              onChange={(e) => setEditing((x) => ({ ...x!, description: e.target.value }))}
+              onChange={(e) =>
+                setEditing((x) => ({ ...x!, description: e.target.value }))
+              }
             />
           </div>
-          <div className="grid grid-cols-2 gap-4">
+          <div className="form-row-2">
             <div>
-              <label className="label">Priority</label>
+              <label className="label" htmlFor="task-priority">
+                Priority
+              </label>
               <select
+                id="task-priority"
                 className="input"
                 value={editing?.priority ?? "medium"}
                 onChange={(e) =>
@@ -213,8 +243,11 @@ export function TasksPanel() {
               </select>
             </div>
             <div>
-              <label className="label">Status</label>
+              <label className="label" htmlFor="task-status">
+                Status
+              </label>
               <select
+                id="task-status"
                 className="input"
                 value={editing?.status ?? "todo"}
                 onChange={(e) =>
@@ -230,32 +263,59 @@ export function TasksPanel() {
               </select>
             </div>
           </div>
-          <div>
-            <label className="label">Deadline</label>
-            <input
-              type="datetime-local"
-              className="input"
-              value={dueLocal}
-              onChange={(e) => setDueLocal(e.target.value)}
-            />
+          <DateTimeField
+            id="task-due"
+            label="Deadline"
+            hint="When this task is due"
+            value={dueLocal}
+            onChange={setDueLocal}
+            optional
+          />
+          <div className="reminder-toggle-card">
+            <label className="checkbox-row">
+              <input
+                type="checkbox"
+                checked={reminderEnabled}
+                onChange={(e) => setReminderEnabled(e.target.checked)}
+              />
+              <span>
+                <strong>Browser reminder</strong>
+                <span className="checkbox-row-hint">
+                  Notify you at a specific time (enable notifications in Reminders tab)
+                </span>
+              </span>
+            </label>
+            {reminderEnabled && (
+              <DateTimeField
+                id="task-remind"
+                label="Remind me at"
+                value={remindLocal}
+                onChange={setRemindLocal}
+              />
+            )}
           </div>
-          <label className="flex items-center gap-2 text-sm">
+          <label className="checkbox-row">
             <input
               type="checkbox"
               checked={editing?.is_daily ?? false}
               onChange={(e) => setEditing((x) => ({ ...x!, is_daily: e.target.checked }))}
             />
-            Show on daily list every day
+            <span>Show on daily list every day</span>
           </label>
-          <div className="flex justify-end gap-2 pt-2">
-            <button type="button" className="btn-ghost" onClick={() => setModalOpen(false)}>
+          <div className="modal-actions">
+            <Button
+              type="button"
+              variant="ghost"
+              onClick={() => setModalOpen(false)}
+              disabled={saving}
+            >
               Cancel
-            </button>
-            <button type="button" className="btn-primary" onClick={save}>
-              Save
-            </button>
+            </Button>
+            <Button type="submit" loading={saving}>
+              Save task
+            </Button>
           </div>
-        </div>
+        </form>
       </Modal>
 
       <ConfirmModal
@@ -264,7 +324,10 @@ export function TasksPanel() {
         message="This cannot be undone."
         confirmLabel="Delete"
         variant="danger"
-        onConfirm={() => deleteId !== null && void removeTask(deleteId)}
+        loading={remove.isPending}
+        onConfirm={() => {
+          if (deleteId !== null) void remove.mutateAsync(deleteId).then(() => setDeleteId(null));
+        }}
         onClose={() => setDeleteId(null)}
       />
     </PageShell>

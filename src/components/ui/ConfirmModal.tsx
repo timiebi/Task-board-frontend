@@ -1,6 +1,7 @@
 "use client";
 
 import { Modal } from "../Modal";
+import { Button } from "./Button";
 
 interface ConfirmModalProps {
   open: boolean;
@@ -9,6 +10,7 @@ interface ConfirmModalProps {
   confirmLabel?: string;
   cancelLabel?: string;
   variant?: "danger" | "default";
+  loading?: boolean;
   onConfirm: () => void;
   onClose: () => void;
 }
@@ -20,6 +22,7 @@ export function ConfirmModal({
   confirmLabel = "Confirm",
   cancelLabel = "Cancel",
   variant = "default",
+  loading = false,
   onConfirm,
   onClose,
 }: ConfirmModalProps) {
@@ -32,16 +35,17 @@ export function ConfirmModal({
     <Modal title={title} open={open} onClose={onClose} size="sm">
       {message && <p className="modal-message">{message}</p>}
       <div className="modal-actions">
-        <button type="button" className="btn-ghost" onClick={onClose}>
+        <Button type="button" variant="ghost" onClick={onClose} disabled={loading}>
           {cancelLabel}
-        </button>
-        <button
+        </Button>
+        <Button
           type="button"
-          className={variant === "danger" ? "btn-danger" : "btn-primary"}
+          variant={variant === "danger" ? "danger" : "primary"}
+          loading={loading}
           onClick={handleConfirm}
         >
           {confirmLabel}
-        </button>
+        </Button>
       </div>
     </Modal>
   );

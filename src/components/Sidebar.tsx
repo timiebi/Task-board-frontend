@@ -24,8 +24,8 @@ interface SidebarProps {
 
 export function Sidebar({ active, onChange }: SidebarProps) {
   return (
-    <aside className="flex w-56 shrink-0 flex-col border-r border-surface-border bg-surface-raised/50 p-4">
-      <div className="mb-8 px-2">
+    <aside className="flex w-52 shrink-0 flex-col border-r border-surface-border bg-surface-raised/50 p-3.5">
+      <div className="mb-6 px-1.5">
         <h1 className="text-lg font-bold tracking-tight text-white">Task Board</h1>
         <p className="text-xs text-[var(--muted)]">Your personal command center</p>
       </div>
@@ -35,7 +35,7 @@ export function Sidebar({ active, onChange }: SidebarProps) {
             key={id}
             type="button"
             onClick={() => onChange(id)}
-            className={`flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition ${
+            className={`flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-sm font-medium transition ${
               active === id
                 ? "bg-accent/20 text-accent"
                 : "text-[var(--muted)] hover:bg-white/5 hover:text-[var(--text)]"

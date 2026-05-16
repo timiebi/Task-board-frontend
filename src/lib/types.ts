@@ -38,6 +38,8 @@ export interface Task {
   status: "todo" | "in_progress" | "done";
   is_daily: boolean;
   completed: boolean;
+  remind_at: string | null;
+  reminded: boolean;
   created_at: string;
   updated_at: string;
 }

@@ -5,6 +5,9 @@ const nextConfig: NextConfig = {
   reactStrictMode: true,
   outputFileTracingRoot: path.join(__dirname),
   transpilePackages: ["@ionic/react", "@ionic/core"],
+  env: {
+    NEXT_PUBLIC_API_URL: process.env.NEXT_PUBLIC_API_URL,
+  },
   ...(process.env.CAPACITOR_BUILD === "true"
     ? { output: "export" as const, images: { unoptimized: true } }
     : {}),

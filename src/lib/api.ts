@@ -1,6 +1,15 @@
 import { clearAuth, getToken } from "./auth";
 import type { Event, Note, Notebook, Plan, Task } from "./types";
-const API_URL = process.env.NEXT_PUBLIC_API_URL;
+
+/** NEXT_PUBLIC_* is inlined at build time; wrangler vars alone are not enough on Cloudflare. */
+function getApiUrl(): string {
+  const fromEnv = process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, "");
+  if (fromEnv) return fromEnv;
+  if (process.env.NODE_ENV === "production") {
+    return "https://task-tribe-backend.onrender.com/api";
+  }
+  return "http://127.0.0.1:8000/api";
+}
 
 export class ApiError extends Error {
   status: number;
@@ -35,7 +44,7 @@ async function request<T>(path: string, options?: RequestInit): Promise<T> {
 
   let res: Response;
   try {
-    res = await fetch(`${API_URL}${path}`, { ...options, headers });
+    res = await fetch(`${getApiUrl()}${path}`, { ...options, headers });
   } catch {
     notify(false, "Cannot reach server. Is the backend running?");
     throw new ApiError("Network error", 0);

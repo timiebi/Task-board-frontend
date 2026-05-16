@@ -44,7 +44,7 @@
   --ion-color-primary: var(--accent);
 }
 
-/* ─── Dark — default, calm charcoal ─── */
+/* ─── Dark — calm charcoal ─── */
 [data-theme="dark"],
 .ion-palette-dark {
   --bg: #191919;

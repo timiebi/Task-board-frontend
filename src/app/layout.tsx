@@ -33,7 +33,7 @@ export const viewport: Viewport = {
   ],
 };
 
-const DEFAULT_THEME = "dark";
+const DEFAULT_THEME = "light";
 
 const themeScript = `
 (function () {
@@ -56,7 +56,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className="ion-palette-dark" data-theme="dark" suppressHydrationWarning>
+    <html lang="en" data-theme="light" suppressHydrationWarning>
       <head>
         <Script id="theme-init" strategy="beforeInteractive">
           {themeScript}

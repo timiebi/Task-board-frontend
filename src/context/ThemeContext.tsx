@@ -24,7 +24,7 @@ function applyTheme(theme: Theme) {
 }
 
 /** App default when user has not chosen a theme yet */
-export const DEFAULT_THEME: Theme = "dark";
+export const DEFAULT_THEME: Theme = "light";
 
 function readTheme(): Theme {
   if (typeof window === "undefined") return DEFAULT_THEME;

@@ -7,8 +7,8 @@ export default function manifest(): MetadataRoute.Manifest {
     description: "Tasks, notes, plans, and reminders",
     start_url: "/",
     display: "standalone",
-    background_color: "#191919",
-    theme_color: "#191919",
+    background_color: "#ffffff",
+    theme_color: "#ffffff",
     orientation: "portrait-primary",
     icons: [
       {

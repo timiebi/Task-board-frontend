@@ -1,10 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import { Calendar, CheckSquare, FileText, Map } from "lucide-react";
+import { useDashboard } from "@/hooks/queries";
 import { useAppNavigate } from "@/context/NavigationContext";
-import { api } from "@/lib/api";
-import type { Event, Plan, Task } from "@/lib/types";
 import { formatDateTime, isOverdue } from "@/lib/utils";
 import { EmptyState } from "../ui/EmptyState";
 import { PageShell } from "../ui/PageShell";
@@ -12,33 +10,11 @@ import { SurfacePanel } from "../ui/SurfacePanel";
 
 export function DashboardPanel() {
   const { navigate } = useAppNavigate();
-  const [tasks, setTasks] = useState<Task[]>([]);
-  const [notesCount, setNotesCount] = useState(0);
-  const [plans, setPlans] = useState<Plan[]>([]);
-  const [events, setEvents] = useState<Event[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    (async () => {
-      try {
-        const [t, n, p, e] = await Promise.all([
-          api.tasks.today(),
-          api.notes.list(),
-          api.plans.list(),
-          api.events.list(),
-        ]);
-        setTasks(t);
-        setNotesCount(n.length);
-        setPlans(p.filter((x) => x.status === "active").slice(0, 5));
-        const now = new Date();
-        setEvents(e.filter((ev) => new Date(ev.starts_at) >= now).slice(0, 5));
-      } catch (err) {
-        console.error(err);
-      } finally {
-        setLoading(false);
-      }
-    })();
-  }, []);
+  const { data, isLoading: loading } = useDashboard();
+  const tasks = data?.tasks ?? [];
+  const notesCount = data?.notesCount ?? 0;
+  const plans = data?.plans ?? [];
+  const events = data?.events ?? [];
 
   const pendingTasks = tasks.filter((t) => !t.completed);
   const overdueCount = tasks.filter(

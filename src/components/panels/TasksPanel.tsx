@@ -1,8 +1,8 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useState } from "react";
 import { Plus, Trash2 } from "lucide-react";
-import { api } from "@/lib/api";
+import { useTaskMutations, useTasks } from "@/hooks/queries";
 import type { Task } from "@/lib/types";
 import {
   formatDateTime,
@@ -29,32 +29,13 @@ const emptyTask = (): Partial<Task> => ({
 });
 
 export function TasksPanel() {
-  const [tasks, setTasks] = useState<Task[]>([]);
   const [filter, setFilter] = useState<"today" | "daily" | "all">("today");
-  const [loading, setLoading] = useState(true);
+  const { data: tasks = [], isLoading: loading } = useTasks(filter);
+  const { create, update, toggleComplete, remove } = useTaskMutations(filter);
   const [modalOpen, setModalOpen] = useState(false);
   const [editing, setEditing] = useState<Partial<Task> | null>(null);
   const [dueLocal, setDueLocal] = useState("");
   const [deleteId, setDeleteId] = useState<number | null>(null);
-
-  const load = useCallback(async () => {
-    setLoading(true);
-    try {
-      let data: Task[];
-      if (filter === "today") data = await api.tasks.today();
-      else if (filter === "daily") data = await api.tasks.list({ daily: true });
-      else data = await api.tasks.list();
-      setTasks(data);
-    } catch (e) {
-      console.error(e);
-    } finally {
-      setLoading(false);
-    }
-  }, [filter]);
-
-  useEffect(() => {
-    load();
-  }, [load]);
 
   const openCreate = () => {
     setEditing(emptyTask());
@@ -74,21 +55,18 @@ export function TasksPanel() {
       ...editing,
       due_date: fromDatetimeLocalValue(dueLocal),
     };
-    if (editing.id) await api.tasks.update(editing.id, body);
-    else await api.tasks.create(body);
+    if (editing.id) await update.mutateAsync({ id: editing.id, body });
+    else await create.mutateAsync(body);
     setModalOpen(false);
-    load();
   };
 
-  const toggle = async (id: number) => {
-    await api.tasks.toggleComplete(id);
-    load();
+  const toggle = (id: number) => {
+    void toggleComplete.mutateAsync(id);
   };
 
-  const remove = async (id: number) => {
-    await api.tasks.delete(id);
+  const removeTask = async (id: number) => {
+    await remove.mutateAsync(id);
     setDeleteId(null);
-    load();
   };
 
   const filterLabel =
@@ -286,7 +264,7 @@ export function TasksPanel() {
         message="This cannot be undone."
         confirmLabel="Delete"
         variant="danger"
-        onConfirm={() => deleteId !== null && void remove(deleteId)}
+        onConfirm={() => deleteId !== null && void removeTask(deleteId)}
         onClose={() => setDeleteId(null)}
       />
     </PageShell>

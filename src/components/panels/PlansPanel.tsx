@@ -1,8 +1,8 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useState } from "react";
 import { Plus, Trash2 } from "lucide-react";
-import { api } from "@/lib/api";
+import { usePlanMutations, usePlans } from "@/hooks/queries";
 import type { Plan } from "@/lib/types";
 import { formatDate } from "@/lib/utils";
 import { Modal } from "../Modal";
@@ -26,24 +26,11 @@ const statusStyle: Record<Plan["status"], { color: string; bg: string }> = {
 };
 
 export function PlansPanel() {
-  const [plans, setPlans] = useState<Plan[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { data: plans = [], isLoading: loading } = usePlans();
+  const { create, update, remove } = usePlanMutations();
   const [modalOpen, setModalOpen] = useState(false);
   const [editing, setEditing] = useState<Partial<Plan> | null>(null);
   const [deleteId, setDeleteId] = useState<number | null>(null);
-
-  const load = useCallback(async () => {
-    setLoading(true);
-    try {
-      setPlans(await api.plans.list());
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    load();
-  }, [load]);
 
   const openCreate = () => {
     setEditing(emptyPlan());
@@ -52,16 +39,14 @@ export function PlansPanel() {
 
   const save = async () => {
     if (!editing?.title?.trim()) return;
-    if (editing.id) await api.plans.update(editing.id, editing);
-    else await api.plans.create(editing);
+    if (editing.id) await update.mutateAsync({ id: editing.id, body: editing });
+    else await create.mutateAsync(editing);
     setModalOpen(false);
-    load();
   };
 
-  const remove = async (id: number) => {
-    await api.plans.delete(id);
+  const removePlan = async (id: number) => {
+    await remove.mutateAsync(id);
     setDeleteId(null);
-    load();
   };
 
   return (
@@ -220,7 +205,7 @@ export function PlansPanel() {
         message="This cannot be undone."
         confirmLabel="Delete"
         variant="danger"
-        onConfirm={() => deleteId !== null && void remove(deleteId)}
+        onConfirm={() => deleteId !== null && void removePlan(deleteId)}
         onClose={() => setDeleteId(null)}
       />
     </PageShell>

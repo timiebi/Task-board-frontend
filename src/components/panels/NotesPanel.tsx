@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { IonIcon } from "@ionic/react";
 import {
   addOutline,
@@ -12,7 +12,12 @@ import {
   pin,
   trashOutline,
 } from "ionicons/icons";
-import { api } from "@/lib/api";
+import {
+  useNotebookMutations,
+  useNoteMutations,
+  useNotebooks,
+  useNotes,
+} from "@/hooks/queries";
 import type { Note, Notebook } from "@/lib/types";
 import { relativeTime } from "@/lib/utils";
 import { ConfirmModal } from "../ui/ConfirmModal";
@@ -27,11 +32,12 @@ function notePreview(content: string, max = 80): string {
 }
 
 export function NotesPanel() {
-  const [notebooks, setNotebooks] = useState<Notebook[]>([]);
-  const [notes, setNotes] = useState<Note[]>([]);
   const [selectedNotebook, setSelectedNotebook] = useState<number | null>(null);
   const [selectedNote, setSelectedNote] = useState<Note | null>(null);
-  const [loading, setLoading] = useState(true);
+  const { data: notebooks = [] } = useNotebooks();
+  const { data: notes = [], isLoading: loading } = useNotes(selectedNotebook);
+  const notebookMutations = useNotebookMutations();
+  const noteMutations = useNoteMutations(selectedNotebook);
   const [mobilePane, setMobilePane] = useState<"list" | "editor">("list");
   const [notebookMenuId, setNotebookMenuId] = useState<number | null>(null);
   const [showNewNotebook, setShowNewNotebook] = useState(false);
@@ -45,36 +51,13 @@ export function NotesPanel() {
       ? "All notes"
       : notebooks.find((n) => n.id === selectedNotebook)?.name ?? "Notebook";
 
-  const loadNotebooks = useCallback(async () => {
-    setNotebooks(await api.notebooks.list());
-  }, []);
-
-  const loadNotes = useCallback(async () => {
-    setLoading(true);
-    try {
-      const data = await api.notes.list(selectedNotebook ?? undefined);
-      const sorted = [...data].sort((a, b) => {
-        if (a.is_pinned !== b.is_pinned) return a.is_pinned ? -1 : 1;
-        return new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime();
-      });
-      setNotes(sorted);
-      setSelectedNote((prev) => {
-        if (!sorted.length) return null;
-        if (prev && sorted.find((n) => n.id === prev.id)) return prev;
-        return sorted[0];
-      });
-    } finally {
-      setLoading(false);
-    }
-  }, [selectedNotebook]);
-
   useEffect(() => {
-    loadNotebooks().catch(console.error);
-  }, [loadNotebooks]);
-
-  useEffect(() => {
-    loadNotes().catch(console.error);
-  }, [loadNotes]);
+    setSelectedNote((prev) => {
+      if (!notes.length) return null;
+      if (prev && notes.find((n) => n.id === prev.id)) return prev;
+      return notes[0];
+    });
+  }, [notes]);
 
   const selectNote = (note: Note) => {
     setSelectedNote(note);
@@ -88,52 +71,51 @@ export function NotesPanel() {
 
   const createNotebook = async (name: string) => {
     if (!name.trim()) return;
-    const nb = await api.notebooks.create({ name: name.trim() });
+    const nb = await notebookMutations.create.mutateAsync({ name: name.trim() });
     setShowNewNotebook(false);
-    await loadNotebooks();
     setSelectedNotebook(nb.id);
   };
 
   const renameNotebook = async (name: string) => {
     if (!editNotebook || !name.trim()) return;
-    await api.notebooks.update(editNotebook.id, { name: name.trim() });
+    await notebookMutations.update.mutateAsync({
+      id: editNotebook.id,
+      body: { name: name.trim() },
+    });
     setEditNotebook(null);
-    await loadNotebooks();
   };
 
   const deleteNotebook = async (id: number) => {
-    await api.notebooks.delete(id);
+    await notebookMutations.remove.mutateAsync(id);
     if (selectedNotebook === id) setSelectedNotebook(null);
     setDeleteNotebookId(null);
     setNotebookMenuId(null);
-    await loadNotebooks();
-    await loadNotes();
   };
 
   const createNote = async () => {
-    const note = await api.notes.create({
+    const note = await noteMutations.create.mutateAsync({
       title: "Untitled note",
       content: "",
       notebook: selectedNotebook,
     });
-    await loadNotes();
     selectNote(note);
   };
 
   const updateNote = async (patch: Partial<Note>) => {
     if (!selectedNote) return;
-    const updated = await api.notes.update(selectedNote.id, patch);
+    const updated = await noteMutations.update.mutateAsync({
+      id: selectedNote.id,
+      body: patch,
+    });
     setSelectedNote(updated);
-    await loadNotes();
   };
 
   const deleteNote = async () => {
     if (!selectedNote) return;
-    await api.notes.delete(selectedNote.id);
+    await noteMutations.remove.mutateAsync(selectedNote.id);
     setSelectedNote(null);
     setMobilePane("list");
     setDeleteNoteOpen(false);
-    await loadNotes();
   };
 
   return (

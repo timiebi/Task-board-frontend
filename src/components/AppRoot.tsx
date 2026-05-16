@@ -3,6 +3,7 @@
 import { IonSpinner } from "@ionic/react";
 import { AuthProvider, useAuth } from "@/context/AuthContext";
 import { ThemeProvider } from "@/context/ThemeContext";
+import { QueryProvider } from "@/providers/QueryProvider";
 import { IonicProvider } from "./IonicProvider";
 import { AppShell } from "./AppShell";
 import { LoginPage } from "./LoginPage";
@@ -34,11 +35,13 @@ export function AppRoot() {
   return (
     <IonicProvider>
       <PwaRegister />
-      <ThemeProvider>
-        <AuthProvider>
-          <AppGate />
-        </AuthProvider>
-      </ThemeProvider>
+      <QueryProvider>
+        <ThemeProvider>
+          <AuthProvider>
+            <AppGate />
+          </AuthProvider>
+        </ThemeProvider>
+      </QueryProvider>
     </IonicProvider>
   );
 }

@@ -1,77 +1,7 @@
-import { clearAuth, getToken } from "./auth";
+import { apiRequest } from "./api-client";
 import type { Event, Note, Notebook, Plan, Task } from "./types";
 
-/** NEXT_PUBLIC_* is inlined at build time; wrangler vars alone are not enough on Cloudflare. */
-function getApiUrl(): string {
-  const fromEnv = process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, "");
-  if (fromEnv) return fromEnv;
-  if (process.env.NODE_ENV === "production") {
-    return "https://task-tribe-backend.onrender.com/api";
-  }
-  return "http://127.0.0.1:8000/api";
-}
-
-export class ApiError extends Error {
-  status: number;
-  constructor(message: string, status: number) {
-    super(message);
-    this.status = status;
-    this.name = "ApiError";
-  }
-}
-
-type RequestListener = (ok: boolean, error?: string) => void;
-const listeners = new Set<RequestListener>();
-
-export function onApiStatus(listener: RequestListener): () => void {
-  listeners.add(listener);
-  return () => {
-    listeners.delete(listener);
-  };
-}
-
-function notify(ok: boolean, error?: string) {
-  listeners.forEach((fn) => fn(ok, error));
-}
-
-async function request<T>(path: string, options?: RequestInit): Promise<T> {
-  const token = getToken();
-  const headers: Record<string, string> = {
-    "Content-Type": "application/json",
-    ...(options?.headers as Record<string, string>),
-  };
-  if (token) headers.Authorization = `Token ${token}`;
-
-  let res: Response;
-  try {
-    res = await fetch(`${getApiUrl()}${path}`, { ...options, headers });
-  } catch {
-    notify(false, "Cannot reach server. Is the backend running?");
-    throw new ApiError("Network error", 0);
-  }
-
-  if (res.status === 401) {
-    clearAuth();
-    notify(false, "Session expired. Please sign in again.");
-    throw new ApiError("Unauthorized", 401);
-  }
-
-  if (!res.ok) {
-    let detail = `Request failed (${res.status})`;
-    try {
-      const body = await res.json();
-      detail = body.detail || body.error || detail;
-    } catch {
-      /* ignore */
-    }
-    notify(false, detail);
-    throw new ApiError(detail, res.status);
-  }
-
-  notify(true);
-  if (res.status === 204) return undefined as T;
-  return res.json();
-}
+export { ApiError, onApiStatus } from "./api-client";
 
 function unwrapList<T>(data: T[] | { results: T[] }): T[] {
   if (Array.isArray(data)) return data;
@@ -79,48 +9,54 @@ function unwrapList<T>(data: T[] | { results: T[] }): T[] {
 }
 
 export const api = {
-  health: () => request<{ status: string }>("/health/"),
+  health: () => apiRequest<{ status: string }>("GET", "/health/"),
   auth: {
     login: (username: string, password: string) =>
-      request<{ token: string; user: { id: number; username: string; email: string } }>(
+      apiRequest<{ token: string; user: { id: number; username: string; email: string } }>(
+        "POST",
         "/auth/login/",
-        { method: "POST", body: JSON.stringify({ username, password }) }
+        { username, password }
       ),
     register: (username: string, password: string, email?: string) =>
-      request<{ token: string; user: { id: number; username: string; email: string } }>(
+      apiRequest<{ token: string; user: { id: number; username: string; email: string } }>(
+        "POST",
         "/auth/register/",
-        { method: "POST", body: JSON.stringify({ username, password, email }) }
+        { username, password, email }
       ),
     me: () =>
-      request<{ id: number; username: string; email: string }>("/auth/me/"),
-    logout: () => request<{ detail: string }>("/auth/logout/", { method: "POST" }),
+      apiRequest<{ id: number; username: string; email: string }>("GET", "/auth/me/"),
+    logout: () => apiRequest<{ detail: string }>("POST", "/auth/logout/"),
   },
   notebooks: {
-    list: () => request<Notebook[] | { results: Notebook[] }>("/notebooks/").then(unwrapList),
+    list: () =>
+      apiRequest<Notebook[] | { results: Notebook[] }>("GET", "/notebooks/").then(
+        unwrapList
+      ),
     create: (body: Partial<Notebook>) =>
-      request<Notebook>("/notebooks/", { method: "POST", body: JSON.stringify(body) }),
+      apiRequest<Notebook>("POST", "/notebooks/", body),
     update: (id: number, body: Partial<Notebook>) =>
-      request<Notebook>(`/notebooks/${id}/`, { method: "PATCH", body: JSON.stringify(body) }),
-    delete: (id: number) => request<void>(`/notebooks/${id}/`, { method: "DELETE" }),
+      apiRequest<Notebook>("PATCH", `/notebooks/${id}/`, body),
+    delete: (id: number) => apiRequest<void>("DELETE", `/notebooks/${id}/`),
   },
   notes: {
     list: (notebook?: number) => {
       const q = notebook ? `?notebook=${notebook}` : "";
-      return request<Note[] | { results: Note[] }>(`/notes/${q}`).then(unwrapList);
+      return apiRequest<Note[] | { results: Note[] }>("GET", `/notes/${q}`).then(
+        unwrapList
+      );
     },
-    create: (body: Partial<Note>) =>
-      request<Note>("/notes/", { method: "POST", body: JSON.stringify(body) }),
+    create: (body: Partial<Note>) => apiRequest<Note>("POST", "/notes/", body),
     update: (id: number, body: Partial<Note>) =>
-      request<Note>(`/notes/${id}/`, { method: "PATCH", body: JSON.stringify(body) }),
-    delete: (id: number) => request<void>(`/notes/${id}/`, { method: "DELETE" }),
+      apiRequest<Note>("PATCH", `/notes/${id}/`, body),
+    delete: (id: number) => apiRequest<void>("DELETE", `/notes/${id}/`),
   },
   plans: {
-    list: () => request<Plan[] | { results: Plan[] }>("/plans/").then(unwrapList),
-    create: (body: Partial<Plan>) =>
-      request<Plan>("/plans/", { method: "POST", body: JSON.stringify(body) }),
+    list: () =>
+      apiRequest<Plan[] | { results: Plan[] }>("GET", "/plans/").then(unwrapList),
+    create: (body: Partial<Plan>) => apiRequest<Plan>("POST", "/plans/", body),
     update: (id: number, body: Partial<Plan>) =>
-      request<Plan>(`/plans/${id}/`, { method: "PATCH", body: JSON.stringify(body) }),
-    delete: (id: number) => request<void>(`/plans/${id}/`, { method: "DELETE" }),
+      apiRequest<Plan>("PATCH", `/plans/${id}/`, body),
+    delete: (id: number) => apiRequest<void>("DELETE", `/plans/${id}/`),
   },
   tasks: {
     list: (params?: { daily?: boolean; status?: string }) => {
@@ -128,26 +64,27 @@ export const api = {
       if (params?.daily !== undefined) search.set("daily", String(params.daily));
       if (params?.status) search.set("status", params.status);
       const q = search.toString() ? `?${search}` : "";
-      return request<Task[] | { results: Task[] }>(`/tasks/${q}`).then(unwrapList);
+      return apiRequest<Task[] | { results: Task[] }>("GET", `/tasks/${q}`).then(
+        unwrapList
+      );
     },
-    today: () => request<Task[]>("/tasks/today/"),
-    create: (body: Partial<Task>) =>
-      request<Task>("/tasks/", { method: "POST", body: JSON.stringify(body) }),
+    today: () => apiRequest<Task[]>("GET", "/tasks/today/"),
+    create: (body: Partial<Task>) => apiRequest<Task>("POST", "/tasks/", body),
     update: (id: number, body: Partial<Task>) =>
-      request<Task>(`/tasks/${id}/`, { method: "PATCH", body: JSON.stringify(body) }),
+      apiRequest<Task>("PATCH", `/tasks/${id}/`, body),
     toggleComplete: (id: number) =>
-      request<Task>(`/tasks/${id}/toggle_complete/`, { method: "POST" }),
-    delete: (id: number) => request<void>(`/tasks/${id}/`, { method: "DELETE" }),
+      apiRequest<Task>("POST", `/tasks/${id}/toggle_complete/`),
+    delete: (id: number) => apiRequest<void>("DELETE", `/tasks/${id}/`),
   },
   events: {
-    list: () => request<Event[] | { results: Event[] }>("/events/").then(unwrapList),
-    dueReminders: () => request<Event[]>("/events/due_reminders/"),
-    create: (body: Partial<Event>) =>
-      request<Event>("/events/", { method: "POST", body: JSON.stringify(body) }),
+    list: () =>
+      apiRequest<Event[] | { results: Event[] }>("GET", "/events/").then(unwrapList),
+    dueReminders: () => apiRequest<Event[]>("GET", "/events/due_reminders/"),
+    create: (body: Partial<Event>) => apiRequest<Event>("POST", "/events/", body),
     update: (id: number, body: Partial<Event>) =>
-      request<Event>(`/events/${id}/`, { method: "PATCH", body: JSON.stringify(body) }),
+      apiRequest<Event>("PATCH", `/events/${id}/`, body),
     markNotified: (id: number) =>
-      request<Event>(`/events/${id}/mark_notified/`, { method: "POST" }),
-    delete: (id: number) => request<void>(`/events/${id}/`, { method: "DELETE" }),
+      apiRequest<Event>("POST", `/events/${id}/mark_notified/`),
+    delete: (id: number) => apiRequest<void>("DELETE", `/events/${id}/`),
   },
 };

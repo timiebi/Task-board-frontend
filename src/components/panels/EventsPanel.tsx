@@ -1,8 +1,8 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useState } from "react";
 import { Bell, BellRing, Plus, Trash2 } from "lucide-react";
-import { api } from "@/lib/api";
+import { useEventMutations, useEvents } from "@/hooks/queries";
 import type { Event } from "@/lib/types";
 import {
   formatDateTime,
@@ -32,26 +32,13 @@ export function EventsPanel({
   onEnableNotifications,
   notificationStatus,
 }: EventsPanelProps) {
-  const [events, setEvents] = useState<Event[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { data: events = [], isLoading: loading } = useEvents();
+  const { create, update, remove } = useEventMutations();
   const [modalOpen, setModalOpen] = useState(false);
   const [editing, setEditing] = useState<Partial<Event> | null>(null);
   const [startsLocal, setStartsLocal] = useState("");
   const [remindLocal, setRemindLocal] = useState("");
   const [deleteId, setDeleteId] = useState<number | null>(null);
-
-  const load = useCallback(async () => {
-    setLoading(true);
-    try {
-      setEvents(await api.events.list());
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    load();
-  }, [load]);
 
   const openCreate = () => {
     const e = emptyEvent();
@@ -75,16 +62,14 @@ export function EventsPanel({
       starts_at: fromDatetimeLocalValue(startsLocal) ?? new Date().toISOString(),
       remind_at: fromDatetimeLocalValue(remindLocal),
     };
-    if (editing.id) await api.events.update(editing.id, body);
-    else await api.events.create(body);
+    if (editing.id) await update.mutateAsync({ id: editing.id, body });
+    else await create.mutateAsync(body);
     setModalOpen(false);
-    load();
   };
 
-  const remove = async (id: number) => {
-    await api.events.delete(id);
+  const removeEvent = async (id: number) => {
+    await remove.mutateAsync(id);
     setDeleteId(null);
-    load();
   };
 
   return (
@@ -219,7 +204,7 @@ export function EventsPanel({
         message="This cannot be undone."
         confirmLabel="Delete"
         variant="danger"
-        onConfirm={() => deleteId !== null && void remove(deleteId)}
+        onConfirm={() => deleteId !== null && void removeEvent(deleteId)}
         onClose={() => setDeleteId(null)}
       />
     </PageShell>

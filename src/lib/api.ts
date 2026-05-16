@@ -1,7 +1,6 @@
 import { clearAuth, getToken } from "./auth";
 import type { Event, Note, Notebook, Plan, Task } from "./types";
-
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000/api";
+const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
 export class ApiError extends Error {
   status: number;

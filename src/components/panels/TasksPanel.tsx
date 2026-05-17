@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { Bell, Plus, Trash2 } from "lucide-react";
+import { ShareItemButton } from "../sharing/ShareItemButton";
 import { useTaskMutations, useTasks } from "@/hooks/queries";
 import type { Task } from "@/lib/types";
 import {
@@ -174,6 +175,7 @@ export function TasksPanel() {
                       )}
                     </div>
                   </div>
+                  <ShareItemButton itemType="task" itemId={task.id} itemTitle={task.title} />
                   <button
                     type="button"
                     onClick={() => setDeleteId(task.id)}

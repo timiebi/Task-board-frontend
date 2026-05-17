@@ -26,8 +26,13 @@ import {
   checkmarkCircleOutline,
   gridOutline,
   mapOutline,
+  notificationsOutline,
   settingsOutline,
 } from "ionicons/icons";
+import { captureInviteTokenFromUrl } from "@/lib/pending-invite";
+import { useUnreadNotificationCount } from "@/hooks/queries";
+import { useAppNotifications } from "@/hooks/useAppNotifications";
+import { NotificationsPanel } from "./panels/NotificationsPanel";
 import { menuController } from "@ionic/core";
 import { useAuth } from "@/context/AuthContext";
 import { NavigationProvider } from "@/context/NavigationContext";
@@ -55,6 +60,7 @@ const titles: Record<Tab, string> = {
   notes: "Notes",
   plans: "Plans",
   events: "Reminders",
+  notifications: "Notifications",
   settings: "Settings",
 };
 
@@ -63,8 +69,11 @@ export function AppShell() {
   const [tab, setTab] = useState<Tab>("dashboard");
   const [notificationStatus, setNotificationStatus] = useState("default");
   const { requestPermission } = useReminders(true);
+  useAppNotifications(true);
+  const { data: unread } = useUnreadNotificationCount();
 
   useEffect(() => {
+    captureInviteTokenFromUrl();
     if (typeof window !== "undefined" && "Notification" in window) {
       setNotificationStatus(Notification.permission);
     }
@@ -92,6 +101,7 @@ export function AppShell() {
           notificationStatus={notificationStatus}
         />
       )}
+      {tab === "notifications" && <NotificationsPanel />}
       {tab === "settings" && <SettingsPanel />}
     </>
   );
@@ -147,6 +157,19 @@ export function AppShell() {
               </IonButtons>
               <IonTitle>{titles[tab]}</IonTitle>
               <IonButtons slot="end">
+                <IonButton
+                  fill="clear"
+                  className="header-notifications-btn"
+                  onClick={() => navigate("notifications")}
+                  aria-label="Notifications"
+                >
+                  <IonIcon icon={notificationsOutline} slot="icon-only" />
+                  {(unread?.count ?? 0) > 0 && (
+                    <span className="header-notifications-badge" aria-hidden>
+                      {unread!.count > 9 ? "9+" : unread!.count}
+                    </span>
+                  )}
+                </IonButton>
                 <IonButton
                   fill="clear"
                   className="header-settings-btn"

@@ -20,6 +20,7 @@ import {
 } from "@/hooks/queries";
 import type { Note, Notebook } from "@/lib/types";
 import { relativeTime } from "@/lib/utils";
+import { ShareItemButton } from "../sharing/ShareItemButton";
 import { ConfirmModal } from "../ui/ConfirmModal";
 import { EmptyState } from "../ui/EmptyState";
 import { PageShell } from "../ui/PageShell";
@@ -309,6 +310,13 @@ export function NotesPanel() {
                   >
                     <IonIcon icon={pin} />
                   </button>
+                  <span className="notes-share-wrap">
+                    <ShareItemButton
+                      itemType="note"
+                      itemId={selectedNote.id}
+                      itemTitle={selectedNote.title || "Untitled"}
+                    />
+                  </span>
                   <button
                     type="button"
                     className="notes-icon-btn is-danger"

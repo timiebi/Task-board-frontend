@@ -1,5 +1,16 @@
 import { apiRequest } from "./api-client";
-import type { Event, Note, Notebook, Plan, Task } from "./types";
+import type {
+  AppNotification,
+  Event,
+  Note,
+  Notebook,
+  Plan,
+  ShareableType,
+  SharedItem,
+  SpaceInvite,
+  SpaceMember,
+  Task,
+} from "./types";
 
 export { ApiError, onApiStatus } from "./api-client";
 
@@ -78,6 +89,38 @@ export const api = {
     markReminded: (id: number) =>
       apiRequest<Task>("POST", `/tasks/${id}/mark_reminded/`),
     delete: (id: number) => apiRequest<void>("DELETE", `/tasks/${id}/`),
+  },
+  sharing: {
+    connections: () => apiRequest<SpaceMember[]>("GET", "/connections/"),
+    invitesSent: () => apiRequest<SpaceInvite[]>("GET", "/connections/sent/"),
+    invite: (email: string) =>
+      apiRequest<SpaceInvite>("POST", "/connections/invite/", { email }),
+    accept: (id: number) =>
+      apiRequest<SpaceInvite>("POST", `/connections/${id}/accept/`),
+    decline: (id: number) =>
+      apiRequest<{ detail: string }>("POST", `/connections/${id}/decline/`),
+    acceptToken: (token: string) =>
+      apiRequest<SpaceInvite>("POST", "/connections/accept-token/", { token }),
+    share: (body: {
+      to_user_id: number;
+      item_type: ShareableType;
+      item_id: number;
+      message?: string;
+    }) => apiRequest<SharedItem>("POST", "/shares/", body),
+    inbox: () => apiRequest<SharedItem[]>("GET", "/shares/inbox/"),
+    markShareRead: (id: number) =>
+      apiRequest<SharedItem>("POST", `/shares/${id}/read/`),
+    notifications: () =>
+      apiRequest<AppNotification[]>("GET", "/notifications/"),
+    unreadCount: () =>
+      apiRequest<{ count: number }>("GET", "/notifications/unread-count/"),
+    markNotificationRead: (id: number) =>
+      apiRequest<AppNotification>("POST", `/notifications/${id}/read/`),
+    acceptInviteFromNotification: (id: number) =>
+      apiRequest<{ connection: SpaceInvite; notification: AppNotification }>(
+        "POST",
+        `/notifications/${id}/accept-invite/`
+      ),
   },
   events: {
     list: () =>

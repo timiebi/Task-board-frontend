@@ -5,6 +5,7 @@ import { Plus, Trash2 } from "lucide-react";
 import { usePlanMutations, usePlans } from "@/hooks/queries";
 import type { Plan } from "@/lib/types";
 import { formatDate } from "@/lib/utils";
+import { ShareItemButton } from "../sharing/ShareItemButton";
 import { Modal } from "../Modal";
 import { Button } from "../ui/Button";
 import { ConfirmModal } from "../ui/ConfirmModal";
@@ -113,6 +114,7 @@ export function PlansPanel() {
                   >
                     Edit
                   </button>
+                  <ShareItemButton itemType="plan" itemId={plan.id} itemTitle={plan.title} />
                   <button
                     type="button"
                     className="surface-icon-btn is-danger"

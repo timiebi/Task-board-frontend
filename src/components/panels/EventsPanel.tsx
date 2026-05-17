@@ -9,6 +9,7 @@ import {
   fromDatetimeLocalValue,
   toDatetimeLocalValue,
 } from "@/lib/utils";
+import { ShareItemButton } from "../sharing/ShareItemButton";
 import { Modal } from "../Modal";
 import { Button } from "../ui/Button";
 import { ConfirmModal } from "../ui/ConfirmModal";
@@ -135,6 +136,7 @@ export function EventsPanel({
                       )}
                     </p>
                   </div>
+                  <ShareItemButton itemType="event" itemId={event.id} itemTitle={event.title} />
                   <button
                     type="button"
                     onClick={() => setDeleteId(event.id)}

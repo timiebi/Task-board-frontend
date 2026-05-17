@@ -1893,6 +1893,248 @@ ion-content.main-content {
   color: var(--accent);
 }
 
+/* ─── Header notifications ─── */
+.header-notifications-btn {
+  --color: var(--text-secondary);
+  position: relative;
+  margin-inline-end: 2px;
+}
+
+.header-notifications-btn ion-icon {
+  font-size: 1.35rem;
+  color: var(--text-secondary);
+}
+
+.header-notifications-badge {
+  position: absolute;
+  top: 6px;
+  right: 4px;
+  min-width: 16px;
+  height: 16px;
+  padding: 0 4px;
+  border-radius: 999px;
+  background: var(--danger);
+  color: #fff;
+  font-size: 0.625rem;
+  font-weight: 700;
+  line-height: 16px;
+  text-align: center;
+}
+
+/* ─── Share modal ─── */
+.share-contact-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+.share-contact-option {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  background: var(--surface-raised);
+  text-align: left;
+  font: inherit;
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+}
+
+.share-contact-option.is-selected {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+
+.share-contact-name {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.share-contact-email {
+  font-size: 0.75rem;
+  color: var(--muted);
+}
+
+.share-empty,
+.share-success {
+  font-size: 0.875rem;
+  color: var(--text-secondary);
+  line-height: 1.5;
+}
+
+/* ─── People settings ─── */
+.people-invite-form {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.people-invite-form .input {
+  flex: 1;
+  min-width: 180px;
+}
+
+.people-block {
+  margin-top: 12px;
+}
+
+.people-block-title {
+  margin: 0 0 8px;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: var(--muted);
+}
+
+.people-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.people-list li {
+  padding: 8px 0;
+  border-bottom: 1px solid var(--border-subtle);
+  font-size: 0.875rem;
+}
+
+.people-email {
+  display: block;
+  font-size: 0.75rem;
+  color: var(--muted);
+}
+
+/* ─── Notifications panel ─── */
+.notification-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.notification-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.notification-row.is-unread {
+  background: var(--accent-soft);
+}
+
+.notification-row-title {
+  margin: 0 0 4px;
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.notification-row-body {
+  margin: 0 0 6px;
+  font-size: 0.875rem;
+  color: var(--text-secondary);
+}
+
+.notification-row-time {
+  font-size: 0.75rem;
+  color: var(--muted);
+}
+
+.notification-row-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.shared-inbox-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 8px;
+}
+
+.shared-inbox-card {
+  padding: 14px 16px;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  background: var(--surface-raised);
+}
+
+.shared-inbox-card.is-unread {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 1px var(--accent-soft);
+}
+
+.shared-inbox-card-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+  font-size: 0.75rem;
+  color: var(--muted);
+}
+
+.shared-inbox-type {
+  text-transform: uppercase;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  color: var(--accent);
+}
+
+.shared-inbox-title {
+  margin: 0 0 6px;
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.shared-inbox-message {
+  margin: 0 0 8px;
+  font-size: 0.875rem;
+  font-style: italic;
+  color: var(--text-secondary);
+}
+
+.shared-inbox-body {
+  margin: 0 0 8px;
+  font-size: 0.875rem;
+  color: var(--text-secondary);
+  white-space: pre-wrap;
+}
+
+.shared-inbox-meta {
+  margin: 0 0 8px;
+  font-size: 0.8125rem;
+  color: var(--muted);
+}
+
+.surface-panel.mt-4 {
+  margin-top: 16px;
+}
+
+.notes-share-wrap {
+  display: inline-flex;
+  align-items: center;
+}
+
+.notes-share-wrap .surface-icon-btn {
+  width: 36px;
+  height: 36px;
+}
+
 .export-tasks-error {
   position: absolute;
   top: calc(100% + 4px);

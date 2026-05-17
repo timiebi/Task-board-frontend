@@ -7,7 +7,15 @@ import {
 } from "@tanstack/react-query";
 import { api } from "@/lib/api";
 import { queryKeys } from "@/lib/query-keys";
-import type { Event, Note, Notebook, Plan, Task } from "@/lib/types";
+import type {
+  AppNotification,
+  Event,
+  Note,
+  Notebook,
+  Plan,
+  ShareableType,
+  Task,
+} from "@/lib/types";
 
 export function useAuthMe(enabled: boolean) {
   return useQuery({
@@ -209,6 +217,87 @@ export function useDueReminders(enabled: boolean) {
     enabled,
     refetchInterval: enabled ? 30_000 : false,
     retry: false,
+  });
+}
+
+export function useConnections() {
+  return useQuery({
+    queryKey: queryKeys.sharing.connections,
+    queryFn: () => api.sharing.connections(),
+  });
+}
+
+export function useInvitesSent() {
+  return useQuery({
+    queryKey: queryKeys.sharing.invites,
+    queryFn: () => api.sharing.invitesSent(),
+  });
+}
+
+export function useSharingMutations() {
+  const queryClient = useQueryClient();
+  const invalidate = () => {
+    queryClient.invalidateQueries({ queryKey: queryKeys.sharing.root });
+  };
+
+  return {
+    invite: useMutation({
+      mutationFn: (email: string) => api.sharing.invite(email),
+      onSuccess: invalidate,
+    }),
+    accept: useMutation({
+      mutationFn: (id: number) => api.sharing.accept(id),
+      onSuccess: invalidate,
+    }),
+    decline: useMutation({
+      mutationFn: (id: number) => api.sharing.decline(id),
+      onSuccess: invalidate,
+    }),
+    share: useMutation({
+      mutationFn: (body: {
+        to_user_id: number;
+        item_type: ShareableType;
+        item_id: number;
+        message?: string;
+      }) => api.sharing.share(body),
+      onSuccess: invalidate,
+    }),
+    acceptFromNotification: useMutation({
+      mutationFn: (notificationId: number) =>
+        api.sharing.acceptInviteFromNotification(notificationId),
+      onSuccess: invalidate,
+    }),
+    markNotificationRead: useMutation({
+      mutationFn: (id: number) => api.sharing.markNotificationRead(id),
+      onSuccess: invalidate,
+    }),
+    markShareRead: useMutation({
+      mutationFn: (id: number) => api.sharing.markShareRead(id),
+      onSuccess: invalidate,
+    }),
+  };
+}
+
+export function useNotifications() {
+  return useQuery({
+    queryKey: queryKeys.sharing.notifications,
+    queryFn: () => api.sharing.notifications(),
+    refetchInterval: 30_000,
+  });
+}
+
+export function useUnreadNotificationCount() {
+  return useQuery({
+    queryKey: queryKeys.sharing.unread,
+    queryFn: () => api.sharing.unreadCount(),
+    refetchInterval: 30_000,
+  });
+}
+
+export function useSharedInbox() {
+  return useQuery({
+    queryKey: queryKeys.sharing.inbox,
+    queryFn: () => api.sharing.inbox(),
   });
 }
 

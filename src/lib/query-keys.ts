@@ -27,4 +27,12 @@ export const queryKeys = {
   dashboard: {
     all: ["dashboard"] as const,
   },
+  sharing: {
+    root: ["sharing"] as const,
+    connections: ["sharing", "connections"] as const,
+    invites: ["sharing", "invites"] as const,
+    inbox: ["sharing", "inbox"] as const,
+    notifications: ["sharing", "notifications"] as const,
+    unread: ["sharing", "unread-count"] as const,
+  },
 };

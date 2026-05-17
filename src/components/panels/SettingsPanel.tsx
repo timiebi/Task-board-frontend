@@ -4,6 +4,7 @@ import { IonIcon } from "@ionic/react";
 import { logOutOutline, moonOutline, sunnyOutline } from "ionicons/icons";
 import { useAuth } from "@/context/AuthContext";
 import { useTheme, type Theme } from "@/context/ThemeContext";
+import { PeopleSection } from "../settings/PeopleSection";
 import { PageShell } from "../ui/PageShell";
 import { SurfacePanel } from "../ui/SurfacePanel";
 
@@ -49,6 +50,8 @@ export function SettingsPanel() {
             </div>
           </div>
         </section>
+
+        <PeopleSection />
 
         <section className="surface-section">
           <header className="surface-section-header">

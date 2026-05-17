@@ -55,4 +55,54 @@ export interface Event {
   updated_at: string;
 }
 
-export type Tab = "dashboard" | "tasks" | "notes" | "plans" | "events" | "settings";
+export type ShareableType = "task" | "note" | "plan" | "event";
+
+export interface SpaceMember {
+  id: number;
+  user_id: number;
+  username: string;
+  email: string;
+}
+
+export interface SpaceInvite {
+  id: number;
+  from_username: string;
+  to_username: string | null;
+  invite_email: string;
+  display_name: string;
+  status: "pending" | "accepted" | "declined";
+  created_at: string;
+  updated_at: string;
+}
+
+export interface SharedItem {
+  id: number;
+  shared_by_username: string;
+  item_type: ShareableType;
+  item_id: number;
+  payload: Record<string, unknown>;
+  message: string;
+  read_at: string | null;
+  created_at: string;
+}
+
+export interface AppNotification {
+  id: number;
+  kind: "connection_invite" | "connection_accepted" | "item_shared";
+  title: string;
+  body: string;
+  payload: Record<string, unknown>;
+  is_read: boolean;
+  action_required: boolean;
+  read_at: string | null;
+  created_at: string;
+}
+
+export type Tab =
+  | "dashboard"
+  | "tasks"
+  | "notes"
+  | "plans"
+  | "events"
+  | "notifications"
+  | "settings";

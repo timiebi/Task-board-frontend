@@ -216,7 +216,7 @@ export function PlansPanel() {
       <ConfirmModal
         open={deleteId !== null}
         title="Delete plan?"
-        message="This cannot be undone."
+        message="This plan will be deleted permanently."
         confirmLabel="Delete"
         variant="danger"
         loading={remove.isPending}

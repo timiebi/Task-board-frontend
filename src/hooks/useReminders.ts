@@ -18,7 +18,7 @@ export function useReminders(enabled: boolean) {
       if (notifiedEvents.current.has(event.id)) return;
 
       notifiedEvents.current.add(event.id);
-      new Notification(`Reminder: ${event.title}`, {
+      new Notification(event.title, {
         body:
           event.description ||
           `Starts ${new Date(event.starts_at).toLocaleString()}`,
@@ -38,8 +38,8 @@ export function useReminders(enabled: boolean) {
       if (notifiedTasks.current.has(task.id)) return;
 
       notifiedTasks.current.add(task.id);
-      new Notification(`Task reminder: ${task.title}`, {
-        body: task.description || "Your task is due.",
+      new Notification(task.title, {
+        body: task.description || "This task is due now.",
         tag: `task-${task.id}`,
       });
       markReminded.mutate(task.id, {

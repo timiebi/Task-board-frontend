@@ -96,7 +96,7 @@ export function EventsPanel({
       <SurfacePanel toolbarTitle={loading ? "Loading…" : `${events.length} events`}>
         {notificationStatus === "denied" && (
           <p className="surface-alert">
-            Notifications are off. Turn them on in your browser settings.
+            Reminders won't pop up until you allow notifications in your browser settings.
           </p>
         )}
         {loading ? (
@@ -207,7 +207,7 @@ export function EventsPanel({
       <ConfirmModal
         open={deleteId !== null}
         title="Delete event?"
-        message="This cannot be undone."
+        message="This reminder will be deleted permanently."
         confirmLabel="Delete"
         variant="danger"
         loading={remove.isPending}

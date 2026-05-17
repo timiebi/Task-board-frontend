@@ -20,7 +20,7 @@ function SharedItemCard({
   onRead: (id: number) => void;
 }) {
   const payload = item.payload as Record<string, string | boolean | null>;
-  const title = String(payload.title ?? "Shared item");
+  const title = String(payload.title ?? "Something shared with you");
 
   return (
     <article className={`shared-inbox-card ${item.read_at ? "" : "is-unread"}`}>
@@ -144,7 +144,7 @@ export function NotificationsPanel() {
           <p className="surface-loading">Loading…</p>
         ) : sortedNotes.length === 0 ? (
           <p className="dash-empty" style={{ padding: 24 }}>
-            No notifications yet.
+            You're all caught up. Invites and shares will show up here.
           </p>
         ) : (
           <ul className="notification-list">
@@ -168,7 +168,7 @@ export function NotificationsPanel() {
           <p className="surface-loading">Loading shared items…</p>
         ) : inbox.length === 0 ? (
           <p className="dash-empty" style={{ padding: 24 }}>
-            When someone shares a task or note, it appears here.
+            When someone shares something with you, you'll see the full details here.
           </p>
         ) : (
           <div className="shared-inbox-grid">

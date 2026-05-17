@@ -327,7 +327,7 @@ export function TasksPanel() {
       <ConfirmModal
         open={deleteId !== null}
         title="Delete task?"
-        message="This cannot be undone."
+        message="This task will be deleted permanently."
         confirmLabel="Delete"
         variant="danger"
         loading={remove.isPending}

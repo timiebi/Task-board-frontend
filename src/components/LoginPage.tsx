@@ -5,6 +5,7 @@ import { IonContent, IonIcon, IonPage, IonSpinner } from "@ionic/react";
 import { checkmarkCircleOutline, lockClosedOutline, personOutline } from "ionicons/icons";
 import { useAuth } from "@/context/AuthContext";
 import { ApiError } from "@/lib/api";
+import { USER_MESSAGES } from "@/lib/user-messages";
 import "@/app/auth.css";
 
 export function LoginPage() {
@@ -25,7 +26,7 @@ export function LoginPage() {
       if (mode === "login") await login(username.trim(), password);
       else await register(username.trim(), password, email.trim() || undefined);
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : "Something went wrong");
+      setError(err instanceof ApiError ? err.message : USER_MESSAGES.generic);
     } finally {
       setSubmitting(false);
     }

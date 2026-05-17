@@ -1,6 +1,7 @@
 import axios, { isAxiosError } from "axios";
 import { clearAuth, getToken } from "./auth";
 import { getApiUrl } from "./get-api-url";
+import { friendlyApiMessage, USER_MESSAGES } from "./user-messages";
 
 export class ApiError extends Error {
   status: number;
@@ -25,15 +26,6 @@ function notify(ok: boolean, error?: string) {
   listeners.forEach((fn) => fn(ok, error));
 }
 
-function messageFromBody(body: unknown, fallback: string): string {
-  if (body && typeof body === "object") {
-    const o = body as Record<string, unknown>;
-    if (typeof o.detail === "string") return o.detail;
-    if (typeof o.error === "string") return o.error;
-  }
-  return fallback;
-}
-
 export const apiClient = axios.create({
   baseURL: getApiUrl(),
   headers: { "Content-Type": "application/json" },
@@ -55,29 +47,39 @@ apiClient.interceptors.response.use(
   },
   (error: unknown) => {
     if (!isAxiosError(error)) {
-      notify(false, "Cannot reach server. Is the backend running?");
-      throw new ApiError("Network error", 0);
+      notify(false, USER_MESSAGES.network);
+      throw new ApiError(USER_MESSAGES.network, 0);
     }
 
     const status = error.response?.status ?? 0;
 
+    if (error.code === "ECONNABORTED") {
+      notify(false, USER_MESSAGES.timeout);
+      throw new ApiError(USER_MESSAGES.timeout, 0);
+    }
+
     if (!error.response) {
-      notify(false, "Cannot reach server. Is the backend running?");
-      throw new ApiError("Network error", 0);
+      notify(false, USER_MESSAGES.network);
+      throw new ApiError(USER_MESSAGES.network, 0);
     }
 
     if (status === 401) {
-      clearAuth();
-      notify(false, "Session expired. Please sign in again.");
-      throw new ApiError("Unauthorized", 401);
+      const path = error.config?.url ?? "";
+      const isAuthAttempt =
+        path.includes("/auth/login") || path.includes("/auth/register");
+      const message = isAuthAttempt
+        ? friendlyApiMessage(error.response.data, status)
+        : USER_MESSAGES.sessionExpired;
+      if (!isAuthAttempt) {
+        clearAuth();
+      }
+      notify(false, message);
+      throw new ApiError(message, 401);
     }
 
-    const detail = messageFromBody(
-      error.response.data,
-      `Request failed (${status})`
-    );
-    notify(false, detail);
-    throw new ApiError(detail, status);
+    const message = friendlyApiMessage(error.response.data, status);
+    notify(false, message);
+    throw new ApiError(message, status);
   }
 );
 

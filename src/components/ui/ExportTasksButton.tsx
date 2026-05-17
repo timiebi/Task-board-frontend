@@ -5,6 +5,8 @@ import { Download, FileSpreadsheet, FileText } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { api } from "@/lib/api";
 import { downloadTasksCsv, downloadTasksPdf } from "@/lib/export-tasks";
+import { ApiError } from "@/lib/api";
+import { USER_MESSAGES } from "@/lib/user-messages";
 import { sortTasksByUrgency } from "@/lib/utils";
 import { Button } from "./Button";
 
@@ -21,14 +23,14 @@ export function ExportTasksButton() {
     try {
       const tasks = sortTasksByUrgency(await api.tasks.list());
       if (tasks.length === 0) {
-        setError("No tasks to export yet.");
+        setError("You don't have any tasks to download yet.");
         return;
       }
       const username = user?.username;
       if (format === "csv") downloadTasksCsv(tasks, username);
       else await downloadTasksPdf(tasks, username);
-    } catch {
-      setError("Could not export tasks. Check your connection and try again.");
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : USER_MESSAGES.generic);
     } finally {
       setExporting(null);
     }

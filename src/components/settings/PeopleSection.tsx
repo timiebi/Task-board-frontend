@@ -27,8 +27,8 @@ export function PeopleSection() {
       </header>
       <div className="surface-section-body">
         <p className="surface-section-hint">
-          Invite someone by the email on their account. They get a notification to accept, then
-          you can share tasks and notes.
+          Enter the email they used when signing up. They'll get a notification to accept—then you
+          can share tasks, notes, and more.
         </p>
         <form className="people-invite-form" onSubmit={(e) => void sendInvite(e)}>
           <input
@@ -58,7 +58,7 @@ export function PeopleSection() {
         <div className="people-block">
           <h4 className="people-block-title">Connected ({connections.length})</h4>
           {connections.length === 0 ? (
-            <p className="dash-empty">No connections yet.</p>
+            <p className="dash-empty">No one connected yet. Send an invite above.</p>
           ) : (
             <ul className="people-list">
               {connections.map((c) => (

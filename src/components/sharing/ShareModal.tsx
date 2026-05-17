@@ -60,7 +60,7 @@ export function ShareModal({
   return (
     <Modal title={`Share ${typeLabels[itemType]}`} open={open} onClose={handleClose} size="sm">
       {done ? (
-        <p className="share-success">Shared with your contact. They will see it in notifications.</p>
+        <p className="share-success">Sent! They'll see it in their notifications.</p>
       ) : (
         <form
           className="modal-form"
@@ -77,8 +77,8 @@ export function ShareModal({
             <p className="surface-loading">Loading contacts…</p>
           ) : connections.length === 0 ? (
             <p className="share-empty">
-              No contacts yet. Add people by email in Settings → People, then they must accept
-              your invite.
+              You don't have any contacts yet. Go to Settings → People, invite someone by email,
+              and wait for them to accept.
             </p>
           ) : (
             <div className="share-contact-list" role="listbox" aria-label="Choose a contact">

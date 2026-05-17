@@ -386,7 +386,7 @@ export function NotesPanel() {
       <ConfirmModal
         open={deleteNoteOpen}
         title="Delete note?"
-        message="This cannot be undone."
+        message="This note will be deleted permanently."
         confirmLabel="Delete"
         variant="danger"
         onConfirm={() => void deleteNote()}

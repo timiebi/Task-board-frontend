@@ -18,6 +18,7 @@ import { ConfirmModal } from "../ui/ConfirmModal";
 import { DateTimeField } from "../ui/DateTimeField";
 import { EmptyState } from "../ui/EmptyState";
 import { FilterPills } from "../ui/FilterPills";
+import { ExportTasksButton } from "../ui/ExportTasksButton";
 import { PageShell } from "../ui/PageShell";
 import { SurfacePanel } from "../ui/SurfacePanel";
 
@@ -84,9 +85,12 @@ export function TasksPanel() {
       title="Tasks"
       subtitle="What you need to do"
       action={
-        <Button type="button" onClick={openCreate}>
-          <Plus className="h-4 w-4" /> New task
-        </Button>
+        <div className="page-header-actions">
+          <ExportTasksButton />
+          <Button type="button" onClick={openCreate}>
+            <Plus className="h-4 w-4" /> New task
+          </Button>
+        </div>
       }
     >
       <SurfacePanel

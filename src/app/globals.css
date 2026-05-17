@@ -1817,3 +1817,94 @@ ion-content.main-content {
   background: var(--accent-soft);
   border-color: transparent;
 }
+
+/* ─── Page header actions ─── */
+.page-header-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+/* ─── Export tasks menu ─── */
+.export-tasks {
+  position: relative;
+}
+
+.export-tasks-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  border: none;
+  background: transparent;
+  cursor: default;
+}
+
+.export-tasks-menu {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  z-index: 50;
+  min-width: 260px;
+  padding: 6px;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  background: var(--bg-elevated);
+  box-shadow: 0 12px 32px rgb(0 0 0 / 12%);
+}
+
+.export-tasks-option {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  width: 100%;
+  padding: 10px 12px;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  text-align: left;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.export-tasks-option:hover {
+  background: var(--surface-hover);
+}
+
+.export-tasks-option strong {
+  display: block;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.export-tasks-option small {
+  display: block;
+  margin-top: 2px;
+  font-size: 0.75rem;
+  color: var(--muted);
+}
+
+.export-tasks-option svg {
+  flex-shrink: 0;
+  margin-top: 2px;
+  color: var(--accent);
+}
+
+.export-tasks-error {
+  position: absolute;
+  top: calc(100% + 4px);
+  right: 0;
+  z-index: 51;
+  margin: 0;
+  padding: 6px 10px;
+  max-width: 240px;
+  font-size: 0.75rem;
+  color: var(--danger);
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  box-shadow: 0 4px 12px rgb(0 0 0 / 8%);
+}

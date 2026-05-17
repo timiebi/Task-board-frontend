@@ -7,9 +7,10 @@ import {
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
 } from "react";
-import { api } from "@/lib/api";
+import { api, ApiError } from "@/lib/api";
 import { queryKeys } from "@/lib/query-keys";
 import { useAuthMe } from "@/hooks/queries";
 import {
@@ -17,6 +18,7 @@ import {
   clearAuth,
   getStoredUser,
   getToken,
+  onAuthChange,
   setAuth,
 } from "@/lib/auth";
 
@@ -30,38 +32,57 @@ interface AuthContextValue {
 
 const AuthContext = createContext<AuthContextValue | null>(null);
 
+function readHasToken() {
+  return !!getToken();
+}
+
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const queryClient = useQueryClient();
   const [user, setUser] = useState<AuthUser | null>(null);
   const [hasToken, setHasToken] = useState(false);
-  useEffect(() => {
-    setHasToken(!!getToken());
-  }, []);
-  const { data: me, isLoading, isError } = useAuthMe(hasToken);
 
   useEffect(() => {
-    if (!hasToken) {
-      setUser(null);
-      return;
+    const tokenPresent = readHasToken();
+    setHasToken(tokenPresent);
+    if (tokenPresent) {
+      const stored = getStoredUser();
+      if (stored) setUser(stored);
     }
-    const stored = getStoredUser();
-    if (stored) setUser(stored);
-  }, [hasToken]);
+  }, []);
+
+  useEffect(() => {
+    return onAuthChange(() => {
+      const tokenPresent = readHasToken();
+      setHasToken(tokenPresent);
+      if (!tokenPresent) {
+        setUser(null);
+        queryClient.removeQueries({ queryKey: queryKeys.auth.me });
+      }
+    });
+  }, [queryClient]);
+
+  const { data: me, isLoading, error } = useAuthMe(hasToken);
 
   useEffect(() => {
     if (me) setUser(me);
-    if (isError) {
+  }, [me]);
+
+  useEffect(() => {
+    if (!error) return;
+    if (error instanceof ApiError && error.status === 401) {
       clearAuth();
+      setHasToken(false);
       setUser(null);
       queryClient.removeQueries({ queryKey: queryKeys.auth.me });
     }
-  }, [me, isError, queryClient]);
+  }, [error, queryClient]);
 
   const loginMutation = useMutation({
     mutationFn: ({ username, password }: { username: string; password: string }) =>
       api.auth.login(username, password),
     onSuccess: (res) => {
       setAuth(res.token, res.user);
+      setHasToken(true);
       setUser(res.user);
       queryClient.setQueryData(queryKeys.auth.me, res.user);
     },
@@ -79,6 +100,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }) => api.auth.register(username, password, email),
     onSuccess: (res) => {
       setAuth(res.token, res.user);
+      setHasToken(true);
       setUser(res.user);
       queryClient.setQueryData(queryKeys.auth.me, res.user);
     },
@@ -88,34 +110,40 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     mutationFn: () => api.auth.logout(),
     onSettled: () => {
       clearAuth();
+      setHasToken(false);
       setUser(null);
       queryClient.clear();
     },
   });
 
-  const login = useCallback(
-    async (username: string, password: string) => {
-      await loginMutation.mutateAsync({ username, password });
-    },
-    [loginMutation]
-  );
+  const loginMutateRef = useRef(loginMutation.mutateAsync);
+  loginMutateRef.current = loginMutation.mutateAsync;
+  const registerMutateRef = useRef(registerMutation.mutateAsync);
+  registerMutateRef.current = registerMutation.mutateAsync;
+  const logoutMutateRef = useRef(logoutMutation.mutateAsync);
+  logoutMutateRef.current = logoutMutation.mutateAsync;
+
+  const login = useCallback(async (username: string, password: string) => {
+    await loginMutateRef.current({ username, password });
+  }, []);
 
   const register = useCallback(
     async (username: string, password: string, email?: string) => {
-      await registerMutation.mutateAsync({ username, password, email });
+      await registerMutateRef.current({ username, password, email });
     },
-    [registerMutation]
+    []
   );
 
   const logout = useCallback(async () => {
     try {
-      await logoutMutation.mutateAsync();
+      await logoutMutateRef.current();
     } catch {
       clearAuth();
+      setHasToken(false);
       setUser(null);
       queryClient.clear();
     }
-  }, [logoutMutation, queryClient]);
+  }, [queryClient]);
 
   const loading = hasToken ? isLoading && !user : false;
 

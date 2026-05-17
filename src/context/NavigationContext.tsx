@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useContext } from "react";
+import { createContext, useContext, useMemo } from "react";
 import type { Tab } from "@/lib/types";
 
 interface NavigationContextValue {
@@ -15,10 +15,9 @@ export function NavigationProvider({
   navigate,
   children,
 }: NavigationContextValue & { children: React.ReactNode }) {
+  const value = useMemo(() => ({ tab, navigate }), [tab, navigate]);
   return (
-    <NavigationContext.Provider value={{ tab, navigate }}>
-      {children}
-    </NavigationContext.Provider>
+    <NavigationContext.Provider value={value}>{children}</NavigationContext.Provider>
   );
 }
 

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   IonApp,
   IonButton,
@@ -79,32 +79,41 @@ export function AppShell() {
     }
   }, []);
 
-  const enableNotifications = async () => {
+  const enableNotifications = useCallback(async () => {
     const result = await requestPermission();
     setNotificationStatus(result);
-  };
+  }, [requestPermission]);
 
-  const navigate = (next: Tab) => {
+  const navigate = useCallback((next: Tab) => {
     setTab(next);
     void menuController.close();
-  };
+  }, []);
 
-  const panel = (
-    <>
-      {tab === "dashboard" && <DashboardPanel />}
-      {tab === "tasks" && <TasksPanel />}
-      {tab === "notes" && <NotesPanel />}
-      {tab === "plans" && <PlansPanel />}
-      {tab === "events" && (
-        <EventsPanel
-          onEnableNotifications={enableNotifications}
-          notificationStatus={notificationStatus}
-        />
-      )}
-      {tab === "notifications" && <NotificationsPanel />}
-      {tab === "settings" && <SettingsPanel />}
-    </>
-  );
+  const panel = useMemo(() => {
+    switch (tab) {
+      case "dashboard":
+        return <DashboardPanel />;
+      case "tasks":
+        return <TasksPanel />;
+      case "notes":
+        return <NotesPanel />;
+      case "plans":
+        return <PlansPanel />;
+      case "events":
+        return (
+          <EventsPanel
+            onEnableNotifications={enableNotifications}
+            notificationStatus={notificationStatus}
+          />
+        );
+      case "notifications":
+        return <NotificationsPanel />;
+      case "settings":
+        return <SettingsPanel />;
+      default:
+        return <DashboardPanel />;
+    }
+  }, [tab, notificationStatus, enableNotifications]);
 
   return (
     <IonApp>

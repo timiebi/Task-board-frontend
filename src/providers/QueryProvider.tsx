@@ -11,7 +11,10 @@ export function QueryProvider({ children }: { children: React.ReactNode }) {
           queries: {
             staleTime: 30_000,
             retry: 1,
-            refetchOnWindowFocus: true,
+            refetchOnWindowFocus: (query) => {
+              const key = query.queryKey[0];
+              return key !== "auth";
+            },
           },
           mutations: {
             retry: 0,

@@ -23,6 +23,7 @@ export function useAuthMe(enabled: boolean) {
     queryFn: () => api.auth.me(),
     enabled,
     retry: false,
+    refetchOnWindowFocus: false,
   });
 }
 

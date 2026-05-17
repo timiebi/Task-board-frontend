@@ -22,8 +22,17 @@ export function onApiStatus(listener: RequestListener): () => void {
   };
 }
 
-function notify(ok: boolean, error?: string) {
-  listeners.forEach((fn) => fn(ok, error));
+function notifyError(error: string) {
+  listeners.forEach((fn) => fn(false, error));
+}
+
+function isRequiresLoginBody(data: unknown): boolean {
+  return (
+    !!data &&
+    typeof data === "object" &&
+    "requires_login" in data &&
+    (data as { requires_login?: boolean }).requires_login === true
+  );
 }
 
 export const apiClient = axios.create({
@@ -41,25 +50,22 @@ apiClient.interceptors.request.use((config) => {
 });
 
 apiClient.interceptors.response.use(
-  (response) => {
-    notify(true);
-    return response;
-  },
+  (response) => response,
   (error: unknown) => {
     if (!isAxiosError(error)) {
-      notify(false, USER_MESSAGES.network);
+      notifyError(USER_MESSAGES.network);
       throw new ApiError(USER_MESSAGES.network, 0);
     }
 
     const status = error.response?.status ?? 0;
 
     if (error.code === "ECONNABORTED") {
-      notify(false, USER_MESSAGES.timeout);
+      notifyError(USER_MESSAGES.timeout);
       throw new ApiError(USER_MESSAGES.timeout, 0);
     }
 
     if (!error.response) {
-      notify(false, USER_MESSAGES.network);
+      notifyError(USER_MESSAGES.network);
       throw new ApiError(USER_MESSAGES.network, 0);
     }
 
@@ -67,18 +73,21 @@ apiClient.interceptors.response.use(
       const path = error.config?.url ?? "";
       const isAuthAttempt =
         path.includes("/auth/login") || path.includes("/auth/register");
+      const requiresLogin = isRequiresLoginBody(error.response.data);
       const message = isAuthAttempt
         ? friendlyApiMessage(error.response.data, status)
         : USER_MESSAGES.sessionExpired;
-      if (!isAuthAttempt) {
+
+      if (!isAuthAttempt && !requiresLogin) {
         clearAuth();
       }
-      notify(false, message);
+
+      notifyError(message);
       throw new ApiError(message, 401);
     }
 
     const message = friendlyApiMessage(error.response.data, status);
-    notify(false, message);
+    notifyError(message);
     throw new ApiError(message, status);
   }
 );

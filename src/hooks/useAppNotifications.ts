@@ -6,7 +6,7 @@ import {
   clearPendingInviteToken,
   getPendingInviteToken,
 } from "@/lib/pending-invite";
-import { useNotifications, useSharingMutations } from "@/hooks/queries";
+import { useNotifications } from "@/hooks/queries";
 import type { AppNotification } from "@/lib/types";
 
 export async function flushPendingInvite() {
@@ -25,7 +25,6 @@ export async function flushPendingInvite() {
 export function useAppNotifications(enabled: boolean) {
   const seen = useRef<Set<number>>(new Set());
   const { data: notifications = [] } = useNotifications();
-  const { acceptFromNotification } = useSharingMutations();
 
   useEffect(() => {
     if (!enabled) return;
@@ -49,6 +48,4 @@ export function useAppNotifications(enabled: boolean) {
       if (!n.is_read) pushNotify(n);
     }
   }, [notifications, enabled, pushNotify]);
-
-  return { acceptFromNotification };
 }

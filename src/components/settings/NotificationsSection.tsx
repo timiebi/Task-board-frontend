@@ -87,7 +87,7 @@ export function NotificationsSection() {
           ) : (
             <p className="surface-section-hint">
               Use your browser's <em>Add to Home Screen</em> or <em>Install
-              app</em> menu to install this PWA. (Safari on iOS: Share →
+              app</em>. (Safari on iOS: Share →
               <em> Add to Home Screen</em>.)
             </p>
           )}

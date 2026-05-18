@@ -1041,6 +1041,18 @@ button.surface-item-title:hover {
   background: var(--danger);
 }
 
+.dash-dot.is-done {
+  background: var(--success);
+}
+
+.dash-row--done {
+  opacity: 0.78;
+}
+
+.dash-row--done span:not(.dash-row-time):not(.dash-dot) {
+  text-decoration: line-through;
+}
+
 .dash-row-time {
   margin-left: auto;
   font-size: 0.75rem;

@@ -1,6 +1,6 @@
 "use client";
 
-import { Calendar, CheckSquare, FileText, Map } from "lucide-react";
+import { Calendar, CheckCircle2, CheckSquare, Map } from "lucide-react";
 import { useDashboard } from "@/hooks/queries";
 import { useAppNavigate } from "@/context/NavigationContext";
 import { formatDateTime, isOverdue } from "@/lib/utils";
@@ -12,14 +12,16 @@ export function DashboardPanel() {
   const { navigate } = useAppNavigate();
   const { data, isLoading: loading } = useDashboard();
   const tasks = data?.tasks ?? [];
-  const notesCount = data?.notesCount ?? 0;
   const plans = data?.plans ?? [];
   const events = data?.events ?? [];
 
-  const pendingTasks = tasks.filter((t) => !t.completed);
-  const overdueCount = tasks.filter(
+  const overdueTasks = tasks.filter(
     (t) => !t.completed && isOverdue(t.due_date, t.completed)
-  ).length;
+  );
+  const activeTasks = tasks.filter(
+    (t) => !t.completed && !isOverdue(t.due_date, t.completed)
+  );
+  const doneTasks = tasks.filter((t) => t.completed);
 
   const dateLabel = new Date().toLocaleDateString(undefined, {
     weekday: "long",
@@ -44,22 +46,22 @@ export function DashboardPanel() {
         <div className="dash-overview-strip" role="region" aria-label="Overview">
           <DashStat
             icon={CheckSquare}
-            label="Today's tasks"
-            value={pendingTasks.length}
+            label="Tasks"
+            value={activeTasks.length}
             onClick={() => navigate("tasks")}
           />
           <DashStat
             icon={CheckSquare}
             label="Overdue"
-            value={overdueCount}
-            alert={overdueCount > 0}
+            value={overdueTasks.length}
+            alert={overdueTasks.length > 0}
             onClick={() => navigate("tasks")}
           />
           <DashStat
-            icon={FileText}
-            label="Notes"
-            value={notesCount}
-            onClick={() => navigate("notes")}
+            icon={CheckCircle2}
+            label="Done"
+            value={doneTasks.length}
+            onClick={() => navigate("tasks")}
           />
           <DashStat
             icon={Calendar}
@@ -75,14 +77,14 @@ export function DashboardPanel() {
               className="dash-section-header dash-section-header--link"
               onClick={() => navigate("tasks")}
             >
-              <CheckSquare /> Today
+              <CheckSquare /> Tasks
             </button>
             <div className="dash-section-body">
-              {pendingTasks.length === 0 ? (
-                <p className="dash-empty">Nothing due today.</p>
+              {activeTasks.length === 0 ? (
+                <p className="dash-empty">No active tasks right now.</p>
               ) : (
                 <ul className="surface-list" style={{ padding: 0 }}>
-                  {pendingTasks.slice(0, 6).map((t) => (
+                  {activeTasks.slice(0, 6).map((t) => (
                     <li key={t.id}>
                       <button
                         type="button"
@@ -94,6 +96,76 @@ export function DashboardPanel() {
                             isOverdue(t.due_date, t.completed) ? "is-overdue" : ""
                           }`}
                         />
+                        <span>{t.title}</span>
+                        {t.due_date && (
+                          <span className="dash-row-time">
+                            {formatDateTime(t.due_date)}
+                          </span>
+                        )}
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          </section>
+
+          <section className="dash-section">
+            <button
+              type="button"
+              className="dash-section-header dash-section-header--link"
+              onClick={() => navigate("tasks")}
+            >
+              <CheckSquare /> Overdue
+            </button>
+            <div className="dash-section-body">
+              {overdueTasks.length === 0 ? (
+                <p className="dash-empty">Nothing overdue.</p>
+              ) : (
+                <ul className="surface-list" style={{ padding: 0 }}>
+                  {overdueTasks.slice(0, 6).map((t) => (
+                    <li key={t.id}>
+                      <button
+                        type="button"
+                        className="dash-row dash-row--link"
+                        onClick={() => navigate("tasks")}
+                      >
+                        <span className="dash-dot is-overdue" />
+                        <span>{t.title}</span>
+                        {t.due_date && (
+                          <span className="dash-row-time">
+                            {formatDateTime(t.due_date)}
+                          </span>
+                        )}
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          </section>
+
+          <section className="dash-section">
+            <button
+              type="button"
+              className="dash-section-header dash-section-header--link"
+              onClick={() => navigate("tasks")}
+            >
+              <CheckCircle2 /> Done
+            </button>
+            <div className="dash-section-body">
+              {doneTasks.length === 0 ? (
+                <p className="dash-empty">Nothing completed yet.</p>
+              ) : (
+                <ul className="surface-list" style={{ padding: 0 }}>
+                  {doneTasks.slice(0, 6).map((t) => (
+                    <li key={t.id}>
+                      <button
+                        type="button"
+                        className="dash-row dash-row--link dash-row--done"
+                        onClick={() => navigate("tasks")}
+                      >
+                        <span className="dash-dot is-done" />
                         <span>{t.title}</span>
                         {t.due_date && (
                           <span className="dash-row-time">

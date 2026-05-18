@@ -40,8 +40,10 @@ export function useTasks(filter: "today" | "daily" | "all") {
 
 export function useTaskMutations(filter: "today" | "daily" | "all") {
   const queryClient = useQueryClient();
-  const invalidate = () =>
+  const invalidate = () => {
     queryClient.invalidateQueries({ queryKey: queryKeys.tasks.root });
+    queryClient.invalidateQueries({ queryKey: queryKeys.dashboard.all });
+  };
 
   const create = useMutation({
     mutationFn: (body: Partial<Task>) => api.tasks.create(body),
@@ -83,7 +85,6 @@ export function useTaskMutations(filter: "today" | "daily" | "all") {
     },
     onSettled: () => {
       invalidate();
-      queryClient.invalidateQueries({ queryKey: queryKeys.dashboard.all });
     },
   });
   const remove = useMutation({

@@ -1,5 +1,5 @@
 import { format, formatDistanceToNow, isPast, parseISO } from "date-fns";
-import type { Task } from "./types";
+import type { Event, Task } from "./types";
 
 export function formatDateTime(iso: string | null): string {
   if (!iso) return "—";
@@ -95,6 +95,55 @@ export type TaskPartitions = {
 };
 
 /** Split tasks into overdue (incomplete), other active (incomplete), and done. */
+/** True if the event hasn't started yet or has a future reminder time. */
+export function isUpcomingEvent(event: Event, now = Date.now()): boolean {
+  const start = event.starts_at ? new Date(event.starts_at).getTime() : 0;
+  const remind = event.remind_at ? new Date(event.remind_at).getTime() : 0;
+  return start >= now || remind >= now;
+}
+
+/** Earliest future moment for this event (start or reminder). */
+export function eventUpcomingTimestamp(event: Event, now = Date.now()): number | null {
+  const stamps: number[] = [];
+  if (event.starts_at) {
+    const t = new Date(event.starts_at).getTime();
+    if (t >= now) stamps.push(t);
+  }
+  if (event.remind_at) {
+    const t = new Date(event.remind_at).getTime();
+    if (t >= now) stamps.push(t);
+  }
+  if (stamps.length === 0) return null;
+  return Math.min(...stamps);
+}
+
+/** Label for Home / lists — prefers the next upcoming time (often the reminder). */
+export function eventDisplayTime(event: Event, now = Date.now()): string | null {
+  const upcoming = eventUpcomingTimestamp(event, now);
+  if (upcoming === null) {
+    return event.starts_at ? formatDateTime(event.starts_at) : null;
+  }
+  if (event.remind_at && new Date(event.remind_at).getTime() === upcoming) {
+    return formatDateTime(event.remind_at);
+  }
+  return formatDateTime(event.starts_at);
+}
+
+/** When saving: if only the reminder is in the future, align starts_at so Home lists it. */
+export function normalizeEventTimes(
+  starts_at: string,
+  remind_at: string | null
+): { starts_at: string; remind_at: string | null } {
+  if (!remind_at) return { starts_at, remind_at };
+  const now = Date.now();
+  const remindMs = new Date(remind_at).getTime();
+  const startMs = new Date(starts_at).getTime();
+  if (remindMs >= now && startMs < now) {
+    return { starts_at: remind_at, remind_at };
+  }
+  return { starts_at, remind_at };
+}
+
 export function partitionTasks(tasks: Task[]): TaskPartitions {
   const incomplete = tasks.filter((t) => !t.completed);
   const done = [...tasks.filter((t) => t.completed)].sort(

@@ -7,6 +7,7 @@ import {
 } from "@tanstack/react-query";
 import { api } from "@/lib/api";
 import { queryKeys } from "@/lib/query-keys";
+import { eventUpcomingTimestamp, isUpcomingEvent } from "@/lib/utils";
 import type {
   AppNotification,
   Event,
@@ -210,8 +211,10 @@ export function useEvents() {
 
 export function useEventMutations() {
   const queryClient = useQueryClient();
-  const invalidate = () =>
+  const invalidate = () => {
     queryClient.invalidateQueries({ queryKey: queryKeys.events.root });
+    queryClient.invalidateQueries({ queryKey: queryKeys.dashboard.all });
+  };
 
   return {
     create: useMutation({
@@ -343,13 +346,18 @@ export function useDashboard() {
         api.plans.list(),
         api.events.list(),
       ]);
-      const now = new Date();
+      const now = Date.now();
       return {
         tasks,
         notesCount: notes.length,
         plans: plans.filter((x) => x.status === "active").slice(0, 5),
         events: events
-          .filter((ev) => new Date(ev.starts_at) >= now)
+          .filter((ev) => isUpcomingEvent(ev, now))
+          .sort(
+            (a, b) =>
+              (eventUpcomingTimestamp(a, now) ?? Infinity) -
+              (eventUpcomingTimestamp(b, now) ?? Infinity)
+          )
           .slice(0, 5),
       };
     },

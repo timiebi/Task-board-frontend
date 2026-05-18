@@ -9,6 +9,7 @@ import type { Event } from "@/lib/types";
 import {
   formatDateTime,
   fromDatetimeLocalValue,
+  normalizeEventTimes,
   toDatetimeLocalValue,
 } from "@/lib/utils";
 import { ShareItemButton } from "../sharing/ShareItemButton";
@@ -65,10 +66,13 @@ export function EventsPanel({
 
   const persistEvent = async () => {
     if (!editing?.title?.trim()) return;
+    const rawStart = fromDatetimeLocalValue(startsLocal) ?? new Date().toISOString();
+    const rawRemind = fromDatetimeLocalValue(remindLocal);
+    const times = normalizeEventTimes(rawStart, rawRemind);
     const body = {
       ...editing,
-      starts_at: fromDatetimeLocalValue(startsLocal) ?? new Date().toISOString(),
-      remind_at: fromDatetimeLocalValue(remindLocal),
+      starts_at: times.starts_at,
+      remind_at: times.remind_at,
     };
     if (editing.id) await update.mutateAsync({ id: editing.id, body });
     else await create.mutateAsync(body);

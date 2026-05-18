@@ -3,7 +3,7 @@
 import { Calendar, CheckCircle2, CheckSquare, Map } from "lucide-react";
 import { useDashboard } from "@/hooks/queries";
 import { useAppNavigate } from "@/context/NavigationContext";
-import { formatDateTime, isOverdue } from "@/lib/utils";
+import { eventDisplayTime, formatDateTime, isOverdue } from "@/lib/utils";
 import { EmptyState } from "../ui/EmptyState";
 import { PageShell } from "../ui/PageShell";
 import { SurfacePanel } from "../ui/SurfacePanel";
@@ -235,7 +235,7 @@ export function DashboardPanel() {
                       onClick={() => navigate("events")}
                     >
                       <strong>{e.title}</strong>
-                      <span>{formatDateTime(e.starts_at)}</span>
+                      <span>{eventDisplayTime(e) ?? formatDateTime(e.starts_at)}</span>
                     </button>
                   ))}
                 </div>

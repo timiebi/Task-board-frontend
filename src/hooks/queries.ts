@@ -54,7 +54,37 @@ export function useTaskMutations(filter: "today" | "daily" | "all") {
   });
   const toggleComplete = useMutation({
     mutationFn: (id: number) => api.tasks.toggleComplete(id),
-    onSuccess: invalidate,
+    onMutate: async (id) => {
+      await queryClient.cancelQueries({ queryKey: queryKeys.tasks.root });
+      const snapshots = queryClient.getQueriesData<Task[]>({
+        queryKey: queryKeys.tasks.root,
+      });
+      queryClient.setQueriesData<Task[]>(
+        { queryKey: queryKeys.tasks.root },
+        (old) => {
+          if (!old) return old;
+          return old.map((t) => {
+            if (t.id !== id) return t;
+            const completed = !t.completed;
+            return {
+              ...t,
+              completed,
+              status: completed ? "done" : t.status === "done" ? "todo" : t.status,
+            };
+          });
+        }
+      );
+      return { snapshots };
+    },
+    onError: (_err, _id, context) => {
+      context?.snapshots.forEach(([key, data]) => {
+        queryClient.setQueryData(key, data);
+      });
+    },
+    onSettled: () => {
+      invalidate();
+      queryClient.invalidateQueries({ queryKey: queryKeys.dashboard.all });
+    },
   });
   const remove = useMutation({
     mutationFn: (id: number) => api.tasks.delete(id),

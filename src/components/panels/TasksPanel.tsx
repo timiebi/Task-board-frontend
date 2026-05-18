@@ -11,8 +11,8 @@ import {
   formatDateTime,
   fromDatetimeLocalValue,
   isOverdue,
+  partitionTasks,
   priorityBadgeClass,
-  sortTasksByUrgency,
   toDatetimeLocalValue,
 } from "@/lib/utils";
 import { Modal } from "../Modal";
@@ -51,7 +51,8 @@ export function TasksPanel() {
   const notifyGate = useReminderNotifyGate();
 
   const saving = create.isPending || update.isPending;
-  const sortedTasks = useMemo(() => sortTasksByUrgency(tasks), [tasks]);
+  const { overdue, active, done } = useMemo(() => partitionTasks(tasks), [tasks]);
+  const hasAnyTasks = overdue.length + active.length + done.length > 0;
 
   const openCreate = () => {
     setEditing(emptyTask());
@@ -71,8 +72,11 @@ export function TasksPanel() {
 
   const persistTask = async () => {
     if (!editing?.title?.trim()) return;
+    const status = editing.status ?? "todo";
     const body: Partial<Task> = {
       ...editing,
+      status,
+      completed: status === "done",
       due_date: fromDatetimeLocalValue(dueLocal),
       remind_at: reminderEnabled ? fromDatetimeLocalValue(remindLocal) : null,
       reminded: false,
@@ -136,7 +140,7 @@ export function TasksPanel() {
       >
         {loading ? (
           <p className="surface-loading">Loading tasks…</p>
-        ) : sortedTasks.length === 0 ? (
+        ) : !hasAnyTasks ? (
           <EmptyState
             variant="tasks"
             action={
@@ -146,74 +150,31 @@ export function TasksPanel() {
             }
           />
         ) : (
-          <ul className="surface-list">
-            {sortedTasks.map((task) => (
-              <li key={task.id}>
-                <div
-                  className={`surface-item surface-item--row ${
-                    task.completed ? "is-done" : " "
-                  }`}
-                >
-                  <input
-                    type="checkbox"
-                    checked={task.completed}
-                    onChange={() => void toggleComplete.mutateAsync(task.id)}
-                    disabled={toggleComplete.isPending}
-                    className="surface-checkbox"
-                    aria-label={`Mark "${task.title}" complete`}
-                  />
-                  <div className="surface-item-main">
-                    <button
-                      type="button"
-                      onClick={() => openEdit(task)}
-                      className={`surface-item-title ${
-                        task.completed ? "line-through" : ""
-                      }`}
-                    >
-                      {task.title}
-                    </button>
-                    {task.description && (
-                      <p className="surface-item-preview surface-item-preview--clamp">
-                        {task.description}
-                      </p>
-                    )}
-                    <div className="surface-item-tags">
-                      <span className={priorityBadgeClass[task.priority]}>
-                        {task.priority}
-                      </span>
-                      {task.is_daily && <span className="badge badge-daily">daily</span>}
-                      {task.remind_at && (
-                        <span className="badge badge-reminder">
-                          <Bell className="inline h-3 w-3" /> remind
-                        </span>
-                      )}
-                      {task.due_date && (
-                        <span
-                          className="surface-item-meta"
-                          style={{
-                            color: isOverdue(task.due_date, task.completed)
-                              ? "var(--danger)"
-                              : undefined,
-                          }}
-                        >
-                          Due {formatDateTime(task.due_date)}
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                  <ShareItemButton itemType="task" itemId={task.id} itemTitle={task.title} />
-                  <button
-                    type="button"
-                    onClick={() => setDeleteId(task.id)}
-                    className="surface-icon-btn is-danger"
-                    aria-label="Delete task"
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </button>
-                </div>
-              </li>
-            ))}
-          </ul>
+          <div className="task-list-sections">
+            <TaskListSection
+              title="Overdue"
+              variant="overdue"
+              tasks={overdue}
+              toggleComplete={toggleComplete}
+              onEdit={openEdit}
+              onDelete={setDeleteId}
+            />
+            <TaskListSection
+              title="Tasks"
+              tasks={active}
+              toggleComplete={toggleComplete}
+              onEdit={openEdit}
+              onDelete={setDeleteId}
+            />
+            <TaskListSection
+              title="Done"
+              variant="done"
+              tasks={done}
+              toggleComplete={toggleComplete}
+              onEdit={openEdit}
+              onDelete={setDeleteId}
+            />
+          </div>
         )}
       </SurfacePanel>
 
@@ -372,5 +333,101 @@ export function TasksPanel() {
         onInAppOnly={notifyGate.inAppOnly}
       />
     </PageShell>
+  );
+}
+
+type ToggleComplete = ReturnType<typeof useTaskMutations>["toggleComplete"];
+
+function TaskListSection({
+  title,
+  variant,
+  tasks,
+  toggleComplete,
+  onEdit,
+  onDelete,
+}: {
+  title: string;
+  variant?: "overdue" | "done";
+  tasks: Task[];
+  toggleComplete: ToggleComplete;
+  onEdit: (task: Task) => void;
+  onDelete: (id: number) => void;
+}) {
+  if (tasks.length === 0) return null;
+
+  return (
+    <section
+      className={`task-list-section${variant ? ` task-list-section--${variant}` : ""}`}
+    >
+      <h3 className="task-list-section-title">{title}</h3>
+      <ul className="surface-list">
+        {tasks.map((task) => (
+          <li key={task.id}>
+            <div
+              className={`surface-item surface-item--row${
+                task.completed ? " is-done" : ""
+              }`}
+            >
+              <input
+                type="checkbox"
+                checked={task.completed}
+                onChange={() => void toggleComplete.mutateAsync(task.id)}
+                disabled={toggleComplete.isPending}
+                className="surface-checkbox"
+                aria-label={`Mark "${task.title}" complete`}
+              />
+              <div className="surface-item-main">
+                <button
+                  type="button"
+                  onClick={() => onEdit(task)}
+                  className={`surface-item-title${
+                    task.completed ? " line-through" : ""
+                  }`}
+                >
+                  {task.title}
+                </button>
+                {task.description && (
+                  <p className="surface-item-preview surface-item-preview--clamp">
+                    {task.description}
+                  </p>
+                )}
+                <div className="surface-item-tags">
+                  <span className={priorityBadgeClass[task.priority]}>
+                    {task.priority}
+                  </span>
+                  {task.is_daily && <span className="badge badge-daily">daily</span>}
+                  {task.remind_at && (
+                    <span className="badge badge-reminder">
+                      <Bell className="inline h-3 w-3" /> remind
+                    </span>
+                  )}
+                  {task.due_date && (
+                    <span
+                      className="surface-item-meta"
+                      style={{
+                        color: isOverdue(task.due_date, task.completed)
+                          ? "var(--danger)"
+                          : undefined,
+                      }}
+                    >
+                      Due {formatDateTime(task.due_date)}
+                    </span>
+                  )}
+                </div>
+              </div>
+              <ShareItemButton itemType="task" itemId={task.id} itemTitle={task.title} />
+              <button
+                type="button"
+                onClick={() => onDelete(task.id)}
+                className="surface-icon-btn is-danger"
+                aria-label="Delete task"
+              >
+                <Trash2 className="h-4 w-4" />
+              </button>
+            </div>
+          </li>
+        ))}
+      </ul>
+    </section>
   );
 }

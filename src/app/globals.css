@@ -2162,6 +2162,35 @@ ion-content.main-content {
   box-shadow: 0 4px 12px rgb(0 0 0 / 8%);
 }
 
+/* ─── Task list sections (Overdue / Tasks / Done) ─── */
+.task-list-sections {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.task-list-section-title {
+  margin: 0 0 8px;
+  padding: 0 4px;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.task-list-section--overdue .task-list-section-title {
+  color: var(--danger);
+}
+
+.task-list-section--done .task-list-section-title {
+  color: var(--text-muted);
+}
+
+.task-list-section--done .surface-list {
+  opacity: 0.85;
+}
+
 /* ─── Settings notifications/install section ─── */
 .settings-stack {
   display: flex;

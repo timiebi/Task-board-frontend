@@ -87,3 +87,26 @@ export function sortTasksByUrgency(tasks: Task[]): Task[] {
     return ta - tb;
   });
 }
+
+export type TaskPartitions = {
+  overdue: Task[];
+  active: Task[];
+  done: Task[];
+};
+
+/** Split tasks into overdue (incomplete), other active (incomplete), and done. */
+export function partitionTasks(tasks: Task[]): TaskPartitions {
+  const incomplete = tasks.filter((t) => !t.completed);
+  const done = [...tasks.filter((t) => t.completed)].sort(
+    (a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime()
+  );
+
+  const overdue = sortTasksByUrgency(
+    incomplete.filter((t) => isOverdue(t.due_date, false))
+  );
+  const active = sortTasksByUrgency(
+    incomplete.filter((t) => !isOverdue(t.due_date, false))
+  );
+
+  return { overdue, active, done };
+}

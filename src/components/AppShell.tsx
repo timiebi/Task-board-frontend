@@ -29,9 +29,10 @@ import {
   notificationsOutline,
   settingsOutline,
 } from "ionicons/icons";
-import { captureInviteTokenFromUrl } from "@/lib/pending-invite";
+import { captureInviteTokenFromUrl, consumeTabFromUrl } from "@/lib/pending-invite";
 import { useUnreadNotificationCount } from "@/hooks/queries";
 import { useAppNotifications } from "@/hooks/useAppNotifications";
+import { ensurePushSubscription } from "@/lib/push";
 import { NotificationsPanel } from "./panels/NotificationsPanel";
 import { menuController } from "@ionic/core";
 import { useAuth } from "@/context/AuthContext";
@@ -74,15 +75,43 @@ export function AppShell() {
 
   useEffect(() => {
     captureInviteTokenFromUrl();
+    const initialTab = consumeTabFromUrl();
+    if (initialTab) setTab(initialTab as Tab);
     if (typeof window !== "undefined" && "Notification" in window) {
       setNotificationStatus(Notification.permission);
     }
   }, []);
 
+  useEffect(() => {
+    if (typeof navigator === "undefined" || !("serviceWorker" in navigator)) return;
+    const onMessage = (e: MessageEvent) => {
+      const data = e.data as { type?: string; tab?: string } | null;
+      if (data?.type === "navigate" && data.tab && data.tab in titles) {
+        setTab(data.tab as Tab);
+      }
+    };
+    navigator.serviceWorker.addEventListener("message", onMessage);
+    return () => navigator.serviceWorker.removeEventListener("message", onMessage);
+  }, []);
+
   const enableNotifications = useCallback(async () => {
-    const result = await requestPermission();
-    setNotificationStatus(result);
+    const pushState = await ensurePushSubscription();
+    if (pushState === "unsupported") {
+      const result = await requestPermission();
+      setNotificationStatus(result);
+      return;
+    }
+    if (typeof window !== "undefined" && "Notification" in window) {
+      setNotificationStatus(Notification.permission);
+    }
   }, [requestPermission]);
+
+  useEffect(() => {
+    if (!user) return;
+    if (typeof window === "undefined" || !("Notification" in window)) return;
+    if (Notification.permission !== "granted") return;
+    void ensurePushSubscription();
+  }, [user]);
 
   const navigate = useCallback((next: Tab) => {
     setTab(next);

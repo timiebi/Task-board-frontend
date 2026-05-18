@@ -2150,3 +2150,30 @@ ion-content.main-content {
   border-radius: var(--radius-sm);
   box-shadow: 0 4px 12px rgb(0 0 0 / 8%);
 }
+
+/* ─── Settings notifications/install section ─── */
+.settings-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.settings-stack-item {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.settings-stack-title {
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.settings-stack-title svg {
+  color: var(--accent);
+}

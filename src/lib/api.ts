@@ -133,4 +133,15 @@ export const api = {
       apiRequest<Event>("POST", `/events/${id}/mark_notified/`),
     delete: (id: number) => apiRequest<void>("DELETE", `/events/${id}/`),
   },
+  push: {
+    publicKey: () =>
+      apiRequest<{ public_key: string }>("GET", "/push/public-key/"),
+    subscribe: (body: {
+      endpoint: string;
+      keys: { p256dh: string; auth: string };
+      user_agent?: string;
+    }) => apiRequest<{ id: number; endpoint: string }>("POST", "/push/subscribe/", body),
+    unsubscribe: (endpoint: string) =>
+      apiRequest<{ detail: string }>("POST", "/push/unsubscribe/", { endpoint }),
+  },
 };

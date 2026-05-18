@@ -2,7 +2,9 @@
 
 import { useState } from "react";
 import { Bell, BellRing, Plus, Trash2 } from "lucide-react";
+import { useReminderNotifyGate } from "@/hooks/useReminderNotifyGate";
 import { useEventMutations, useEvents } from "@/hooks/queries";
+import { hasActiveNotifications } from "@/lib/notifications-ready";
 import type { Event } from "@/lib/types";
 import {
   formatDateTime,
@@ -13,6 +15,7 @@ import { ShareItemButton } from "../sharing/ShareItemButton";
 import { Modal } from "../Modal";
 import { Button } from "../ui/Button";
 import { ConfirmModal } from "../ui/ConfirmModal";
+import { ReminderNotifyModal } from "../ui/ReminderNotifyModal";
 import { DateTimeField } from "../ui/DateTimeField";
 import { EmptyState } from "../ui/EmptyState";
 import { PageShell } from "../ui/PageShell";
@@ -42,6 +45,7 @@ export function EventsPanel({
   const [startsLocal, setStartsLocal] = useState("");
   const [remindLocal, setRemindLocal] = useState("");
   const [deleteId, setDeleteId] = useState<number | null>(null);
+  const notifyGate = useReminderNotifyGate();
   const saving = create.isPending || update.isPending;
 
   const openCreate = () => {
@@ -59,7 +63,7 @@ export function EventsPanel({
     setModalOpen(true);
   };
 
-  const save = async () => {
+  const persistEvent = async () => {
     if (!editing?.title?.trim()) return;
     const body = {
       ...editing,
@@ -69,6 +73,23 @@ export function EventsPanel({
     if (editing.id) await update.mutateAsync({ id: editing.id, body });
     else await create.mutateAsync(body);
     setModalOpen(false);
+  };
+
+  const save = async () => {
+    if (!editing?.title?.trim()) return;
+    const hasReminder = !!fromDatetimeLocalValue(remindLocal);
+    if (hasReminder && !hasActiveNotifications()) {
+      notifyGate.gate(() => void persistEvent());
+      return;
+    }
+    await persistEvent();
+  };
+
+  const onRemindChange = (value: string) => {
+    const hadValue = !!remindLocal.trim();
+    setRemindLocal(value);
+    if (!value.trim() || hadValue || hasActiveNotifications()) return;
+    notifyGate.gate(() => {});
   };
 
   const removeEvent = async (id: number) => {
@@ -187,10 +208,10 @@ export function EventsPanel({
           <DateTimeField id="event-starts" label="Starts at" value={startsLocal} onChange={setStartsLocal} />
           <DateTimeField
             id="event-remind"
-            label="Remind at"
-            hint="Browser notification time"
+            label="Remind me at"
+            hint="Optional — we'll nudge you at this time"
             value={remindLocal}
-            onChange={setRemindLocal}
+            onChange={onRemindChange}
             optional
           />
           <div className="modal-actions">
@@ -213,6 +234,15 @@ export function EventsPanel({
         loading={remove.isPending}
         onConfirm={() => deleteId !== null && void removeEvent(deleteId)}
         onClose={() => setDeleteId(null)}
+      />
+
+      <ReminderNotifyModal
+        open={notifyGate.promptOpen}
+        blocked={notifyGate.blocked}
+        loading={notifyGate.enabling}
+        onClose={notifyGate.close}
+        onTurnOn={() => void notifyGate.turnOn()}
+        onInAppOnly={notifyGate.inAppOnly}
       />
     </PageShell>
   );

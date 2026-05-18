@@ -403,6 +403,17 @@ textarea {
   .modal-form .modal-actions {
     margin-top: 4px;
   }
+
+  .modal-actions--stack {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .modal-actions--stack .btn-primary,
+  .modal-actions--stack .btn-ghost {
+    width: 100%;
+    justify-content: center;
+  }
 }
 
 /* ─── Settings panel ─── */

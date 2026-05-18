@@ -3,7 +3,9 @@
 import { useMemo, useState } from "react";
 import { Bell, Plus, Trash2 } from "lucide-react";
 import { ShareItemButton } from "../sharing/ShareItemButton";
+import { useReminderNotifyGate } from "@/hooks/useReminderNotifyGate";
 import { useTaskMutations, useTasks } from "@/hooks/queries";
+import { hasActiveNotifications } from "@/lib/notifications-ready";
 import type { Task } from "@/lib/types";
 import {
   formatDateTime,
@@ -16,6 +18,7 @@ import {
 import { Modal } from "../Modal";
 import { Button } from "../ui/Button";
 import { ConfirmModal } from "../ui/ConfirmModal";
+import { ReminderNotifyModal } from "../ui/ReminderNotifyModal";
 import { DateTimeField } from "../ui/DateTimeField";
 import { EmptyState } from "../ui/EmptyState";
 import { FilterPills } from "../ui/FilterPills";
@@ -45,6 +48,7 @@ export function TasksPanel() {
   const [remindLocal, setRemindLocal] = useState("");
   const [reminderEnabled, setReminderEnabled] = useState(false);
   const [deleteId, setDeleteId] = useState<number | null>(null);
+  const notifyGate = useReminderNotifyGate();
 
   const saving = create.isPending || update.isPending;
   const sortedTasks = useMemo(() => sortTasksByUrgency(tasks), [tasks]);
@@ -65,7 +69,7 @@ export function TasksPanel() {
     setModalOpen(true);
   };
 
-  const save = async () => {
+  const persistTask = async () => {
     if (!editing?.title?.trim()) return;
     const body: Partial<Task> = {
       ...editing,
@@ -76,6 +80,28 @@ export function TasksPanel() {
     if (editing.id) await update.mutateAsync({ id: editing.id, body });
     else await create.mutateAsync(body);
     setModalOpen(false);
+  };
+
+  const save = async () => {
+    if (!editing?.title?.trim()) return;
+    const hasReminder = reminderEnabled && !!remindLocal.trim();
+    if (hasReminder && !hasActiveNotifications()) {
+      notifyGate.gate(() => void persistTask());
+      return;
+    }
+    await persistTask();
+  };
+
+  const onReminderToggle = (checked: boolean) => {
+    if (!checked) {
+      setReminderEnabled(false);
+      return;
+    }
+    if (hasActiveNotifications()) {
+      setReminderEnabled(true);
+      return;
+    }
+    notifyGate.gate(() => setReminderEnabled(true));
   };
 
   const filterLabel =
@@ -282,12 +308,12 @@ export function TasksPanel() {
               <input
                 type="checkbox"
                 checked={reminderEnabled}
-                onChange={(e) => setReminderEnabled(e.target.checked)}
+                onChange={(e) => onReminderToggle(e.target.checked)}
               />
               <span>
-                <strong>Browser reminder</strong>
+                <strong>Remind me</strong>
                 <span className="checkbox-row-hint">
-                  Notify you at a specific time (enable notifications in Reminders tab)
+                  Pick a time and we'll nudge you when it's due
                 </span>
               </span>
             </label>
@@ -335,6 +361,15 @@ export function TasksPanel() {
           if (deleteId !== null) void remove.mutateAsync(deleteId).then(() => setDeleteId(null));
         }}
         onClose={() => setDeleteId(null)}
+      />
+
+      <ReminderNotifyModal
+        open={notifyGate.promptOpen}
+        blocked={notifyGate.blocked}
+        loading={notifyGate.enabling}
+        onClose={notifyGate.close}
+        onTurnOn={() => void notifyGate.turnOn()}
+        onInAppOnly={notifyGate.inAppOnly}
       />
     </PageShell>
   );

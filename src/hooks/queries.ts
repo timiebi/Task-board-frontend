@@ -533,6 +533,7 @@ export function useEventMutations() {
       return { snapshots };
     },
     onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.events.all });
       queryClient.invalidateQueries({ queryKey: queryKeys.dashboard.all });
     },
     onError: (_err, _id, context) => {

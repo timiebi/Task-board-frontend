@@ -12,13 +12,18 @@ export function tempItemId(): number {
   return -Date.now() - Math.floor(Math.random() * 1000);
 }
 
-/** Snapshot every list cached under `rootKey` so we can roll back on error. */
+/** Snapshot every list cached under `rootKey` so we can roll back on error.
+ *
+ * Filters out non-array entries because `getQueriesData` matches by prefix
+ * and may surface unrelated caches (e.g. the combined due-reminders cache).
+ */
 export async function snapshotLists<T>(
   queryClient: QueryClient,
   rootKey: QueryKey
 ): Promise<Array<[QueryKey, T[] | undefined]>> {
   await queryClient.cancelQueries({ queryKey: rootKey });
-  return queryClient.getQueriesData<T[]>({ queryKey: rootKey });
+  const all = queryClient.getQueriesData<T[]>({ queryKey: rootKey });
+  return all.filter(([, value]) => value === undefined || Array.isArray(value));
 }
 
 /** Restore every snapshot taken with snapshotLists. */
@@ -31,14 +36,20 @@ export function restoreSnapshots<T>(
   }
 }
 
-/** Apply a transform to every list cached under `rootKey`. */
+/** Apply a transform to every list cached under `rootKey`.
+ *
+ * Note: `setQueriesData` matches by prefix, so the same `rootKey` can also
+ * touch sibling caches whose value is not an array (e.g. the combined
+ * due-reminders cache that lives under `["events", ...]`). We skip anything
+ * that isn't an array so we don't trample those values or throw.
+ */
 export function patchLists<T>(
   queryClient: QueryClient,
   rootKey: QueryKey,
   transform: (list: T[]) => T[]
 ) {
   queryClient.setQueriesData<T[]>({ queryKey: rootKey }, (old) => {
-    if (!old) return old;
+    if (!Array.isArray(old)) return old;
     return transform(old);
   });
 }

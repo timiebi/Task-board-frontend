@@ -167,7 +167,7 @@ export function useTaskMutations(_filter: "today" | "daily" | "all") {
   const markReminded = useMutation({
     mutationFn: (id: number) => api.tasks.markReminded(id),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.tasks.dueReminders });
+      queryClient.invalidateQueries({ queryKey: queryKeys.reminders.root });
     },
   });
 
@@ -545,7 +545,7 @@ export function useEventMutations() {
   const markNotified = useMutation({
     mutationFn: (id: number) => api.events.markNotified(id),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.events.dueReminders });
+      queryClient.invalidateQueries({ queryKey: queryKeys.reminders.root });
     },
   });
 
@@ -554,7 +554,7 @@ export function useEventMutations() {
 
 export function useDueReminders(enabled: boolean) {
   return useQuery({
-    queryKey: [...queryKeys.events.dueReminders, ...queryKeys.tasks.dueReminders],
+    queryKey: queryKeys.reminders.due,
     queryFn: async () => {
       const [events, tasks] = await Promise.all([
         api.events.dueReminders(),

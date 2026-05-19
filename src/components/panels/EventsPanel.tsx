@@ -69,11 +69,16 @@ export function EventsPanel({
     const rawStart = fromDatetimeLocalValue(startsLocal) ?? new Date().toISOString();
     const rawRemind = fromDatetimeLocalValue(remindLocal);
     const times = normalizeEventTimes(rawStart, rawRemind);
-    const body = {
+    const previousRemindAt = editing.remind_at ?? null;
+    const remindAtChanged = times.remind_at !== previousRemindAt;
+    const body: Partial<Event> = {
       ...editing,
       starts_at: times.starts_at,
       remind_at: times.remind_at,
     };
+    if (remindAtChanged && times.remind_at) {
+      body.notified = false;
+    }
     setModalOpen(false);
     if (editing.id) void update.mutate({ id: editing.id, body });
     else void create.mutate(body);

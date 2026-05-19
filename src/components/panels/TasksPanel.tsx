@@ -73,14 +73,19 @@ export function TasksPanel() {
   const persistTask = () => {
     if (!editing?.title?.trim()) return;
     const status = editing.status ?? "todo";
+    const newRemindAt = reminderEnabled ? fromDatetimeLocalValue(remindLocal) : null;
+    const previousRemindAt = editing.remind_at ?? null;
+    const remindAtChanged = newRemindAt !== previousRemindAt;
     const body: Partial<Task> = {
       ...editing,
       status,
       completed: status === "done",
       due_date: fromDatetimeLocalValue(dueLocal),
-      remind_at: reminderEnabled ? fromDatetimeLocalValue(remindLocal) : null,
-      reminded: false,
+      remind_at: newRemindAt,
     };
+    if (remindAtChanged && newRemindAt) {
+      body.reminded = false;
+    }
     setModalOpen(false);
     if (editing.id) void update.mutate({ id: editing.id, body });
     else void create.mutate(body);

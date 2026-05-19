@@ -26,10 +26,6 @@ export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
   viewportFit: "cover",
-  themeColor: [
-    { media: "(prefers-color-scheme: light)", color: "#ffffff" },
-    { media: "(prefers-color-scheme: dark)", color: "#191919" },
-  ],
 };
 
 const DEFAULT_THEME = "light";
@@ -39,12 +35,17 @@ const themeScript = `
   try {
     var t = localStorage.getItem('taskboard_theme');
     if (t !== 'light' && t !== 'dark') t = '${DEFAULT_THEME}';
-    document.documentElement.setAttribute('data-theme', t);
-    if (t === 'dark') {
-      document.documentElement.classList.add('ion-palette-dark');
-    } else {
-      document.documentElement.classList.remove('ion-palette-dark');
+    var root = document.documentElement;
+    root.setAttribute('data-theme', t);
+    if (t === 'dark') root.classList.add('ion-palette-dark');
+    else root.classList.remove('ion-palette-dark');
+    var meta = document.querySelector('meta[name="theme-color"]');
+    if (!meta) {
+      meta = document.createElement('meta');
+      meta.setAttribute('name', 'theme-color');
+      document.head.appendChild(meta);
     }
+    meta.setAttribute('content', t === 'dark' ? '#191919' : '#ffffff');
   } catch (e) {}
 })();
 `;
@@ -62,7 +63,21 @@ export default function RootLayout({
           dangerouslySetInnerHTML={{ __html: themeScript }}
         />
       </head>
-      <body className={inter.className}>{children}</body>
+      <body className={inter.className}>
+        <div
+          id="initial-splash"
+          className="app-splash"
+          role="status"
+          aria-busy="true"
+          aria-label="Loading Task Board"
+        >
+          <div className="app-splash-logo" aria-hidden>
+            TB
+          </div>
+          <div className="app-splash-spinner" aria-hidden />
+        </div>
+        {children}
+      </body>
     </html>
   );
 }

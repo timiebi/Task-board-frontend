@@ -1,6 +1,6 @@
 /* Task Board service worker — push notifications + offline shell cache */
 
-const CACHE = "taskboard-shell-v3";
+const CACHE = "taskboard-shell-v4";
 const SHELL_ASSETS = ["/", "/manifest.webmanifest", "/icon.svg"];
 
 self.addEventListener("install", (event) => {

@@ -5,6 +5,7 @@
 /* ─── Light — neutral productivity (Notion-inspired) ─── */
 :root,
 [data-theme="light"] {
+  color-scheme: light;
   --bg: #ffffff;
   --bg-elevated: #f7f7f5;
   --card: #ffffff;
@@ -47,6 +48,7 @@
 /* ─── Dark — calm charcoal ─── */
 [data-theme="dark"],
 .ion-palette-dark {
+  color-scheme: dark;
   --bg: #191919;
   --bg-elevated: #202020;
   --card: #252525;
@@ -95,7 +97,23 @@ body {
   color: var(--text);
   font-feature-settings: "cv02", "cv03", "cv04", "cv11";
   -webkit-font-smoothing: antialiased;
-  transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+.auth-splash {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg);
+  color: var(--text);
+  z-index: 9999;
+}
+
+.auth-splash ion-spinner {
+  --color: var(--accent);
+  width: 32px;
+  height: 32px;
 }
 
 ion-content {

@@ -7,7 +7,7 @@ export const USER_MESSAGES = {
   generic: "Something went wrong. Please try again.",
   notFound: "We couldn't find that. It may have been removed.",
   forbidden: "You don't have permission to do that.",
-  serverError: "Our servers are having a moment. Please try again shortly.",
+  serverError: "Our servers are having a moment. Please try again shortly or refresh.",
   timeout: "That took too long. Please try again.",
 } as const;
 

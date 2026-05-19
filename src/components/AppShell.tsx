@@ -29,6 +29,7 @@ import {
   notificationsOutline,
   settingsOutline,
 } from "ionicons/icons";
+import { readStoredTab, storeActiveTab } from "@/lib/active-tab";
 import { captureInviteTokenFromUrl, consumeTabFromUrl } from "@/lib/pending-invite";
 import { useUnreadNotificationCount } from "@/hooks/queries";
 import { useAppNotifications } from "@/hooks/useAppNotifications";
@@ -75,8 +76,14 @@ export function AppShell() {
 
   useEffect(() => {
     captureInviteTokenFromUrl();
-    const initialTab = consumeTabFromUrl();
-    if (initialTab) setTab(initialTab as Tab);
+    const fromUrl = consumeTabFromUrl();
+    const fromSession = readStoredTab();
+    if (fromUrl) {
+      setTab(fromUrl);
+      storeActiveTab(fromUrl);
+    } else if (fromSession) {
+      setTab(fromSession);
+    }
     if (typeof window !== "undefined" && "Notification" in window) {
       setNotificationStatus(Notification.permission);
     }
@@ -115,6 +122,7 @@ export function AppShell() {
 
   const navigate = useCallback((next: Tab) => {
     setTab(next);
+    storeActiveTab(next);
     void menuController.close();
   }, []);
 

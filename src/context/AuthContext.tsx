@@ -40,6 +40,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const queryClient = useQueryClient();
   const [user, setUser] = useState<AuthUser | null>(null);
   const [hasToken, setHasToken] = useState(false);
+  const [bootstrapped, setBootstrapped] = useState(false);
 
   useEffect(() => {
     const tokenPresent = readHasToken();
@@ -48,6 +49,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const stored = getStoredUser();
       if (stored) setUser(stored);
     }
+    setBootstrapped(true);
   }, []);
 
   useEffect(() => {
@@ -145,7 +147,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, [queryClient]);
 
-  const loading = hasToken ? isLoading && !user : false;
+  // Wait until we've read localStorage before showing login (avoids flash on refresh).
+  const loading = !bootstrapped || (hasToken && isLoading && !user);
 
   const value = useMemo(
     () => ({ user, loading, login, register, logout }),

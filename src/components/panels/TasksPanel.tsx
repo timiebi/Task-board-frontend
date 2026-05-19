@@ -70,7 +70,7 @@ export function TasksPanel() {
     setModalOpen(true);
   };
 
-  const persistTask = async () => {
+  const persistTask = () => {
     if (!editing?.title?.trim()) return;
     const status = editing.status ?? "todo";
     const body: Partial<Task> = {
@@ -81,19 +81,19 @@ export function TasksPanel() {
       remind_at: reminderEnabled ? fromDatetimeLocalValue(remindLocal) : null,
       reminded: false,
     };
-    if (editing.id) await update.mutateAsync({ id: editing.id, body });
-    else await create.mutateAsync(body);
     setModalOpen(false);
+    if (editing.id) void update.mutate({ id: editing.id, body });
+    else void create.mutate(body);
   };
 
-  const save = async () => {
+  const save = () => {
     if (!editing?.title?.trim()) return;
     const hasReminder = reminderEnabled && !!remindLocal.trim();
     if (hasReminder && !hasActiveNotifications()) {
-      notifyGate.gate(() => void persistTask());
+      notifyGate.gate(() => persistTask());
       return;
     }
-    await persistTask();
+    persistTask();
   };
 
   const onReminderToggle = (checked: boolean) => {
@@ -319,7 +319,10 @@ export function TasksPanel() {
         variant="danger"
         loading={remove.isPending}
         onConfirm={() => {
-          if (deleteId !== null) void remove.mutateAsync(deleteId).then(() => setDeleteId(null));
+          if (deleteId === null) return;
+          const id = deleteId;
+          setDeleteId(null);
+          void remove.mutate(id);
         }}
         onClose={() => setDeleteId(null)}
       />

@@ -41,16 +41,16 @@ export function PlansPanel() {
     setModalOpen(true);
   };
 
-  const save = async () => {
+  const save = () => {
     if (!editing?.title?.trim()) return;
-    if (editing.id) await update.mutateAsync({ id: editing.id, body: editing });
-    else await create.mutateAsync(editing);
     setModalOpen(false);
+    if (editing.id) void update.mutate({ id: editing.id, body: editing });
+    else void create.mutate(editing);
   };
 
-  const removePlan = async (id: number) => {
-    await remove.mutateAsync(id);
+  const removePlan = (id: number) => {
     setDeleteId(null);
+    void remove.mutate(id);
   };
 
   return (

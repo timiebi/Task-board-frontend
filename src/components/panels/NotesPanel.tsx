@@ -70,53 +70,59 @@ export function NotesPanel() {
     setNotebookMenuId(null);
   };
 
-  const createNotebook = async (name: string) => {
+  const createNotebook = (name: string) => {
     if (!name.trim()) return;
-    const nb = await notebookMutations.create.mutateAsync({ name: name.trim() });
     setShowNewNotebook(false);
-    setSelectedNotebook(nb.id);
+    notebookMutations.create.mutate(
+      { name: name.trim() },
+      { onSuccess: (nb) => setSelectedNotebook(nb.id) }
+    );
   };
 
-  const renameNotebook = async (name: string) => {
+  const renameNotebook = (name: string) => {
     if (!editNotebook || !name.trim()) return;
-    await notebookMutations.update.mutateAsync({
+    setEditNotebook(null);
+    void notebookMutations.update.mutate({
       id: editNotebook.id,
       body: { name: name.trim() },
     });
-    setEditNotebook(null);
   };
 
-  const deleteNotebook = async (id: number) => {
-    await notebookMutations.remove.mutateAsync(id);
+  const deleteNotebook = (id: number) => {
     if (selectedNotebook === id) setSelectedNotebook(null);
     setDeleteNotebookId(null);
     setNotebookMenuId(null);
+    void notebookMutations.remove.mutate(id);
   };
 
-  const createNote = async () => {
-    const note = await noteMutations.create.mutateAsync({
-      title: "Untitled note",
-      content: "",
-      notebook: selectedNotebook,
-    });
-    selectNote(note);
+  const createNote = () => {
+    noteMutations.create.mutate(
+      {
+        title: "Untitled note",
+        content: "",
+        notebook: selectedNotebook,
+      },
+      { onSuccess: (note) => selectNote(note) }
+    );
   };
 
-  const updateNote = async (patch: Partial<Note>) => {
+  const updateNote = (patch: Partial<Note>) => {
     if (!selectedNote) return;
-    const updated = await noteMutations.update.mutateAsync({
+    const next = { ...selectedNote, ...patch };
+    setSelectedNote(next);
+    void noteMutations.update.mutate({
       id: selectedNote.id,
       body: patch,
     });
-    setSelectedNote(updated);
   };
 
-  const deleteNote = async () => {
+  const deleteNote = () => {
     if (!selectedNote) return;
-    await noteMutations.remove.mutateAsync(selectedNote.id);
+    const id = selectedNote.id;
     setSelectedNote(null);
     setMobilePane("list");
     setDeleteNoteOpen(false);
+    void noteMutations.remove.mutate(id);
   };
 
   return (

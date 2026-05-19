@@ -7,6 +7,17 @@ import {
 } from "@tanstack/react-query";
 import { api } from "@/lib/api";
 import { queryKeys } from "@/lib/query-keys";
+import {
+  mergeItem,
+  patchLists,
+  prependOptimistic,
+  removeItem,
+  replaceItem,
+  restoreSnapshots,
+  snapshotLists,
+  tempItemId,
+  type OptimisticContext,
+} from "@/lib/optimistic";
 import { eventUpcomingTimestamp, isUpcomingEvent } from "@/lib/utils";
 import type {
   AppNotification,
@@ -39,29 +50,77 @@ export function useTasks(filter: "today" | "daily" | "all") {
   });
 }
 
-export function useTaskMutations(filter: "today" | "daily" | "all") {
+function buildOptimisticTask(body: Partial<Task>, id: number): Task {
+  const now = new Date().toISOString();
+  return {
+    id,
+    title: body.title ?? "",
+    description: body.description ?? "",
+    due_date: body.due_date ?? null,
+    priority: body.priority ?? "medium",
+    status: body.status ?? "todo",
+    is_daily: body.is_daily ?? false,
+    completed: body.completed ?? false,
+    remind_at: body.remind_at ?? null,
+    reminded: body.reminded ?? false,
+    created_at: now,
+    updated_at: now,
+  };
+}
+
+export function useTaskMutations(_filter: "today" | "daily" | "all") {
   const queryClient = useQueryClient();
   const invalidate = () => {
     queryClient.invalidateQueries({ queryKey: queryKeys.tasks.root });
     queryClient.invalidateQueries({ queryKey: queryKeys.dashboard.all });
   };
 
-  const create = useMutation({
-    mutationFn: (body: Partial<Task>) => api.tasks.create(body),
-    onSuccess: invalidate,
+  const create = useMutation<Task, Error, Partial<Task>, OptimisticContext<Task>>({
+    mutationFn: (body) => api.tasks.create(body),
+    onMutate: async (body) => {
+      const snapshots = await snapshotLists<Task>(queryClient, queryKeys.tasks.root);
+      const tempId = tempItemId();
+      prependOptimistic(queryClient, queryKeys.tasks.root, buildOptimisticTask(body, tempId));
+      return { snapshots, tempId };
+    },
+    onSuccess: (created, _body, context) => {
+      if (context?.tempId != null) {
+        replaceItem(queryClient, queryKeys.tasks.root, context.tempId, created);
+      }
+      queryClient.invalidateQueries({ queryKey: queryKeys.dashboard.all });
+    },
+    onError: (_err, _body, context) => {
+      if (context) restoreSnapshots(queryClient, context.snapshots);
+      invalidate();
+    },
   });
-  const update = useMutation({
-    mutationFn: ({ id, body }: { id: number; body: Partial<Task> }) =>
-      api.tasks.update(id, body),
-    onSuccess: invalidate,
+
+  const update = useMutation<
+    Task,
+    Error,
+    { id: number; body: Partial<Task> },
+    OptimisticContext<Task>
+  >({
+    mutationFn: ({ id, body }) => api.tasks.update(id, body),
+    onMutate: async ({ id, body }) => {
+      const snapshots = await snapshotLists<Task>(queryClient, queryKeys.tasks.root);
+      mergeItem<Task>(queryClient, queryKeys.tasks.root, id, body);
+      return { snapshots };
+    },
+    onSuccess: (updated) => {
+      replaceItem(queryClient, queryKeys.tasks.root, updated.id, updated);
+      queryClient.invalidateQueries({ queryKey: queryKeys.dashboard.all });
+    },
+    onError: (_err, _vars, context) => {
+      if (context) restoreSnapshots(queryClient, context.snapshots);
+      invalidate();
+    },
   });
-  const toggleComplete = useMutation({
-    mutationFn: (id: number) => api.tasks.toggleComplete(id),
+
+  const toggleComplete = useMutation<Task, Error, number, OptimisticContext<Task>>({
+    mutationFn: (id) => api.tasks.toggleComplete(id),
     onMutate: async (id) => {
-      await queryClient.cancelQueries({ queryKey: queryKeys.tasks.root });
-      const snapshots = queryClient.getQueriesData<Task[]>({
-        queryKey: queryKeys.tasks.root,
-      });
+      const snapshots = await snapshotLists<Task>(queryClient, queryKeys.tasks.root);
       queryClient.setQueriesData<Task[]>(
         { queryKey: queryKeys.tasks.root },
         (old) => {
@@ -79,18 +138,30 @@ export function useTaskMutations(filter: "today" | "daily" | "all") {
       );
       return { snapshots };
     },
-    onError: (_err, _id, context) => {
-      context?.snapshots.forEach(([key, data]) => {
-        queryClient.setQueryData(key, data);
-      });
+    onSuccess: (updated) => {
+      replaceItem(queryClient, queryKeys.tasks.root, updated.id, updated);
+      queryClient.invalidateQueries({ queryKey: queryKeys.dashboard.all });
     },
-    onSettled: () => {
+    onError: (_err, _id, context) => {
+      if (context) restoreSnapshots(queryClient, context.snapshots);
       invalidate();
     },
   });
-  const remove = useMutation({
-    mutationFn: (id: number) => api.tasks.delete(id),
-    onSuccess: invalidate,
+
+  const remove = useMutation<void, Error, number, OptimisticContext<Task>>({
+    mutationFn: (id) => api.tasks.delete(id),
+    onMutate: async (id) => {
+      const snapshots = await snapshotLists<Task>(queryClient, queryKeys.tasks.root);
+      removeItem<Task>(queryClient, queryKeys.tasks.root, id);
+      return { snapshots };
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.dashboard.all });
+    },
+    onError: (_err, _id, context) => {
+      if (context) restoreSnapshots(queryClient, context.snapshots);
+      invalidate();
+    },
   });
 
   const markReminded = useMutation({
@@ -110,29 +181,84 @@ export function useNotebooks() {
   });
 }
 
+function buildOptimisticNotebook(body: Partial<Notebook>, id: number): Notebook {
+  const now = new Date().toISOString();
+  return {
+    id,
+    name: body.name ?? "",
+    description: body.description ?? "",
+    note_count: body.note_count ?? 0,
+    created_at: now,
+    updated_at: now,
+  };
+}
+
 export function useNotebookMutations() {
   const queryClient = useQueryClient();
   const invalidate = () =>
     queryClient.invalidateQueries({ queryKey: queryKeys.notebooks.root });
 
-  return {
-    create: useMutation({
-      mutationFn: (body: Partial<Notebook>) => api.notebooks.create(body),
-      onSuccess: invalidate,
-    }),
-    update: useMutation({
-      mutationFn: ({ id, body }: { id: number; body: Partial<Notebook> }) =>
-        api.notebooks.update(id, body),
-      onSuccess: invalidate,
-    }),
-    remove: useMutation({
-      mutationFn: (id: number) => api.notebooks.delete(id),
-      onSuccess: () => {
-        invalidate();
-        queryClient.invalidateQueries({ queryKey: queryKeys.notes.root });
-      },
-    }),
-  };
+  const create = useMutation<Notebook, Error, Partial<Notebook>, OptimisticContext<Notebook>>({
+    mutationFn: (body) => api.notebooks.create(body),
+    onMutate: async (body) => {
+      const snapshots = await snapshotLists<Notebook>(queryClient, queryKeys.notebooks.root);
+      const tempId = tempItemId();
+      prependOptimistic(
+        queryClient,
+        queryKeys.notebooks.root,
+        buildOptimisticNotebook(body, tempId)
+      );
+      return { snapshots, tempId };
+    },
+    onSuccess: (created, _body, context) => {
+      if (context?.tempId != null) {
+        replaceItem(queryClient, queryKeys.notebooks.root, context.tempId, created);
+      }
+    },
+    onError: (_err, _body, context) => {
+      if (context) restoreSnapshots(queryClient, context.snapshots);
+      invalidate();
+    },
+  });
+
+  const update = useMutation<
+    Notebook,
+    Error,
+    { id: number; body: Partial<Notebook> },
+    OptimisticContext<Notebook>
+  >({
+    mutationFn: ({ id, body }) => api.notebooks.update(id, body),
+    onMutate: async ({ id, body }) => {
+      const snapshots = await snapshotLists<Notebook>(queryClient, queryKeys.notebooks.root);
+      mergeItem(queryClient, queryKeys.notebooks.root, id, body);
+      return { snapshots };
+    },
+    onSuccess: (updated) => {
+      replaceItem(queryClient, queryKeys.notebooks.root, updated.id, updated);
+    },
+    onError: (_err, _vars, context) => {
+      if (context) restoreSnapshots(queryClient, context.snapshots);
+      invalidate();
+    },
+  });
+
+  const remove = useMutation<void, Error, number, OptimisticContext<Notebook>>({
+    mutationFn: (id) => api.notebooks.delete(id),
+    onMutate: async (id) => {
+      const snapshots = await snapshotLists<Notebook>(queryClient, queryKeys.notebooks.root);
+      removeItem(queryClient, queryKeys.notebooks.root, id);
+      return { snapshots };
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.notes.root });
+    },
+    onError: (_err, _id, context) => {
+      if (context) restoreSnapshots(queryClient, context.snapshots);
+      invalidate();
+    },
+  });
+
+  return { create, update, remove };
 }
 
 export function useNotes(notebook: number | null) {
@@ -148,29 +274,96 @@ export function useNotes(notebook: number | null) {
   });
 }
 
+function buildOptimisticNote(body: Partial<Note>, id: number, notebook: number | null): Note {
+  const now = new Date().toISOString();
+  return {
+    id,
+    notebook: body.notebook ?? notebook,
+    notebook_name: body.notebook_name,
+    title: body.title ?? "",
+    content: body.content ?? "",
+    is_pinned: body.is_pinned ?? false,
+    created_at: now,
+    updated_at: now,
+  };
+}
+
+function sortNotes(list: Note[]): Note[] {
+  return [...list].sort((a, b) => {
+    if (a.is_pinned !== b.is_pinned) return a.is_pinned ? -1 : 1;
+    return new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime();
+  });
+}
+
 export function useNoteMutations(notebook: number | null) {
   const queryClient = useQueryClient();
   const invalidate = () =>
     queryClient.invalidateQueries({ queryKey: queryKeys.notes.root });
 
-  return {
-    create: useMutation({
-      mutationFn: (body: Partial<Note>) => api.notes.create(body),
-      onSuccess: invalidate,
-    }),
-    update: useMutation({
-      mutationFn: ({ id, body }: { id: number; body: Partial<Note> }) =>
-        api.notes.update(id, body),
-      onSuccess: () => {
-        invalidate();
-        queryClient.invalidateQueries({ queryKey: queryKeys.dashboard.all });
-      },
-    }),
-    remove: useMutation({
-      mutationFn: (id: number) => api.notes.delete(id),
-      onSuccess: invalidate,
-    }),
-  };
+  const create = useMutation<Note, Error, Partial<Note>, OptimisticContext<Note>>({
+    mutationFn: (body) => api.notes.create(body),
+    onMutate: async (body) => {
+      const snapshots = await snapshotLists<Note>(queryClient, queryKeys.notes.root);
+      const tempId = tempItemId();
+      const optimistic = buildOptimisticNote(body, tempId, notebook);
+      patchLists<Note>(queryClient, queryKeys.notes.root, (list) =>
+        sortNotes([optimistic, ...list])
+      );
+      return { snapshots, tempId };
+    },
+    onSuccess: (created, _body, context) => {
+      if (context?.tempId != null) {
+        replaceItem(queryClient, queryKeys.notes.root, context.tempId, created);
+        patchLists<Note>(queryClient, queryKeys.notes.root, sortNotes);
+      }
+    },
+    onError: (_err, _body, context) => {
+      if (context) restoreSnapshots(queryClient, context.snapshots);
+      invalidate();
+    },
+  });
+
+  const update = useMutation<
+    Note,
+    Error,
+    { id: number; body: Partial<Note> },
+    OptimisticContext<Note>
+  >({
+    mutationFn: ({ id, body }) => api.notes.update(id, body),
+    onMutate: async ({ id, body }) => {
+      const snapshots = await snapshotLists<Note>(queryClient, queryKeys.notes.root);
+      mergeItem(queryClient, queryKeys.notes.root, id, {
+        ...body,
+        updated_at: new Date().toISOString(),
+      });
+      patchLists<Note>(queryClient, queryKeys.notes.root, sortNotes);
+      return { snapshots };
+    },
+    onSuccess: (updated) => {
+      replaceItem(queryClient, queryKeys.notes.root, updated.id, updated);
+      patchLists<Note>(queryClient, queryKeys.notes.root, sortNotes);
+      queryClient.invalidateQueries({ queryKey: queryKeys.dashboard.all });
+    },
+    onError: (_err, _vars, context) => {
+      if (context) restoreSnapshots(queryClient, context.snapshots);
+      invalidate();
+    },
+  });
+
+  const remove = useMutation<void, Error, number, OptimisticContext<Note>>({
+    mutationFn: (id) => api.notes.delete(id),
+    onMutate: async (id) => {
+      const snapshots = await snapshotLists<Note>(queryClient, queryKeys.notes.root);
+      removeItem(queryClient, queryKeys.notes.root, id);
+      return { snapshots };
+    },
+    onError: (_err, _id, context) => {
+      if (context) restoreSnapshots(queryClient, context.snapshots);
+      invalidate();
+    },
+  });
+
+  return { create, update, remove };
 }
 
 export function usePlans() {
@@ -180,26 +373,86 @@ export function usePlans() {
   });
 }
 
+function buildOptimisticPlan(body: Partial<Plan>, id: number): Plan {
+  const now = new Date().toISOString();
+  return {
+    id,
+    title: body.title ?? "",
+    content: body.content ?? "",
+    start_date: body.start_date ?? null,
+    end_date: body.end_date ?? null,
+    status: body.status ?? "draft",
+    created_at: now,
+    updated_at: now,
+  };
+}
+
 export function usePlanMutations() {
   const queryClient = useQueryClient();
-  const invalidate = () =>
+  const invalidate = () => {
     queryClient.invalidateQueries({ queryKey: queryKeys.plans.root });
-
-  return {
-    create: useMutation({
-      mutationFn: (body: Partial<Plan>) => api.plans.create(body),
-      onSuccess: invalidate,
-    }),
-    update: useMutation({
-      mutationFn: ({ id, body }: { id: number; body: Partial<Plan> }) =>
-        api.plans.update(id, body),
-      onSuccess: invalidate,
-    }),
-    remove: useMutation({
-      mutationFn: (id: number) => api.plans.delete(id),
-      onSuccess: invalidate,
-    }),
+    queryClient.invalidateQueries({ queryKey: queryKeys.dashboard.all });
   };
+
+  const create = useMutation<Plan, Error, Partial<Plan>, OptimisticContext<Plan>>({
+    mutationFn: (body) => api.plans.create(body),
+    onMutate: async (body) => {
+      const snapshots = await snapshotLists<Plan>(queryClient, queryKeys.plans.root);
+      const tempId = tempItemId();
+      prependOptimistic(queryClient, queryKeys.plans.root, buildOptimisticPlan(body, tempId));
+      return { snapshots, tempId };
+    },
+    onSuccess: (created, _body, context) => {
+      if (context?.tempId != null) {
+        replaceItem(queryClient, queryKeys.plans.root, context.tempId, created);
+      }
+      queryClient.invalidateQueries({ queryKey: queryKeys.dashboard.all });
+    },
+    onError: (_err, _body, context) => {
+      if (context) restoreSnapshots(queryClient, context.snapshots);
+      invalidate();
+    },
+  });
+
+  const update = useMutation<
+    Plan,
+    Error,
+    { id: number; body: Partial<Plan> },
+    OptimisticContext<Plan>
+  >({
+    mutationFn: ({ id, body }) => api.plans.update(id, body),
+    onMutate: async ({ id, body }) => {
+      const snapshots = await snapshotLists<Plan>(queryClient, queryKeys.plans.root);
+      mergeItem(queryClient, queryKeys.plans.root, id, body);
+      return { snapshots };
+    },
+    onSuccess: (updated) => {
+      replaceItem(queryClient, queryKeys.plans.root, updated.id, updated);
+      queryClient.invalidateQueries({ queryKey: queryKeys.dashboard.all });
+    },
+    onError: (_err, _vars, context) => {
+      if (context) restoreSnapshots(queryClient, context.snapshots);
+      invalidate();
+    },
+  });
+
+  const remove = useMutation<void, Error, number, OptimisticContext<Plan>>({
+    mutationFn: (id) => api.plans.delete(id),
+    onMutate: async (id) => {
+      const snapshots = await snapshotLists<Plan>(queryClient, queryKeys.plans.root);
+      removeItem(queryClient, queryKeys.plans.root, id);
+      return { snapshots };
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.dashboard.all });
+    },
+    onError: (_err, _id, context) => {
+      if (context) restoreSnapshots(queryClient, context.snapshots);
+      invalidate();
+    },
+  });
+
+  return { create, update, remove };
 }
 
 export function useEvents() {
@@ -209,6 +462,20 @@ export function useEvents() {
   });
 }
 
+function buildOptimisticEvent(body: Partial<Event>, id: number): Event {
+  const now = new Date().toISOString();
+  return {
+    id,
+    title: body.title ?? "",
+    description: body.description ?? "",
+    starts_at: body.starts_at ?? now,
+    remind_at: body.remind_at ?? null,
+    notified: body.notified ?? false,
+    created_at: now,
+    updated_at: now,
+  };
+}
+
 export function useEventMutations() {
   const queryClient = useQueryClient();
   const invalidate = () => {
@@ -216,27 +483,72 @@ export function useEventMutations() {
     queryClient.invalidateQueries({ queryKey: queryKeys.dashboard.all });
   };
 
-  return {
-    create: useMutation({
-      mutationFn: (body: Partial<Event>) => api.events.create(body),
-      onSuccess: invalidate,
-    }),
-    update: useMutation({
-      mutationFn: ({ id, body }: { id: number; body: Partial<Event> }) =>
-        api.events.update(id, body),
-      onSuccess: invalidate,
-    }),
-    remove: useMutation({
-      mutationFn: (id: number) => api.events.delete(id),
-      onSuccess: invalidate,
-    }),
-    markNotified: useMutation({
-      mutationFn: (id: number) => api.events.markNotified(id),
-      onSuccess: () => {
-        queryClient.invalidateQueries({ queryKey: queryKeys.events.dueReminders });
-      },
-    }),
-  };
+  const create = useMutation<Event, Error, Partial<Event>, OptimisticContext<Event>>({
+    mutationFn: (body) => api.events.create(body),
+    onMutate: async (body) => {
+      const snapshots = await snapshotLists<Event>(queryClient, queryKeys.events.root);
+      const tempId = tempItemId();
+      prependOptimistic(queryClient, queryKeys.events.root, buildOptimisticEvent(body, tempId));
+      return { snapshots, tempId };
+    },
+    onSuccess: (created, _body, context) => {
+      if (context?.tempId != null) {
+        replaceItem(queryClient, queryKeys.events.root, context.tempId, created);
+      }
+      queryClient.invalidateQueries({ queryKey: queryKeys.dashboard.all });
+    },
+    onError: (_err, _body, context) => {
+      if (context) restoreSnapshots(queryClient, context.snapshots);
+      invalidate();
+    },
+  });
+
+  const update = useMutation<
+    Event,
+    Error,
+    { id: number; body: Partial<Event> },
+    OptimisticContext<Event>
+  >({
+    mutationFn: ({ id, body }) => api.events.update(id, body),
+    onMutate: async ({ id, body }) => {
+      const snapshots = await snapshotLists<Event>(queryClient, queryKeys.events.root);
+      mergeItem(queryClient, queryKeys.events.root, id, body);
+      return { snapshots };
+    },
+    onSuccess: (updated) => {
+      replaceItem(queryClient, queryKeys.events.root, updated.id, updated);
+      queryClient.invalidateQueries({ queryKey: queryKeys.dashboard.all });
+    },
+    onError: (_err, _vars, context) => {
+      if (context) restoreSnapshots(queryClient, context.snapshots);
+      invalidate();
+    },
+  });
+
+  const remove = useMutation<void, Error, number, OptimisticContext<Event>>({
+    mutationFn: (id) => api.events.delete(id),
+    onMutate: async (id) => {
+      const snapshots = await snapshotLists<Event>(queryClient, queryKeys.events.root);
+      removeItem(queryClient, queryKeys.events.root, id);
+      return { snapshots };
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.dashboard.all });
+    },
+    onError: (_err, _id, context) => {
+      if (context) restoreSnapshots(queryClient, context.snapshots);
+      invalidate();
+    },
+  });
+
+  const markNotified = useMutation({
+    mutationFn: (id: number) => api.events.markNotified(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.events.dueReminders });
+    },
+  });
+
+  return { create, update, remove, markNotified };
 }
 
 export function useDueReminders(enabled: boolean) {

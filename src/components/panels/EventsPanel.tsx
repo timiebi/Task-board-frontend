@@ -64,7 +64,7 @@ export function EventsPanel({
     setModalOpen(true);
   };
 
-  const persistEvent = async () => {
+  const persistEvent = () => {
     if (!editing?.title?.trim()) return;
     const rawStart = fromDatetimeLocalValue(startsLocal) ?? new Date().toISOString();
     const rawRemind = fromDatetimeLocalValue(remindLocal);
@@ -74,19 +74,19 @@ export function EventsPanel({
       starts_at: times.starts_at,
       remind_at: times.remind_at,
     };
-    if (editing.id) await update.mutateAsync({ id: editing.id, body });
-    else await create.mutateAsync(body);
     setModalOpen(false);
+    if (editing.id) void update.mutate({ id: editing.id, body });
+    else void create.mutate(body);
   };
 
-  const save = async () => {
+  const save = () => {
     if (!editing?.title?.trim()) return;
     const hasReminder = !!fromDatetimeLocalValue(remindLocal);
     if (hasReminder && !hasActiveNotifications()) {
-      notifyGate.gate(() => void persistEvent());
+      notifyGate.gate(() => persistEvent());
       return;
     }
-    await persistEvent();
+    persistEvent();
   };
 
   const onRemindChange = (value: string) => {
@@ -96,9 +96,9 @@ export function EventsPanel({
     notifyGate.gate(() => {});
   };
 
-  const removeEvent = async (id: number) => {
-    await remove.mutateAsync(id);
+  const removeEvent = (id: number) => {
     setDeleteId(null);
+    void remove.mutate(id);
   };
 
   return (

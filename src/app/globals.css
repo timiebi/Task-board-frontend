@@ -2291,3 +2291,23 @@ ion-content.main-content {
 .settings-stack-title svg {
   color: var(--accent);
 }
+
+.settings-tz-dl {
+  margin: 0;
+  display: grid;
+  gap: 10px;
+  font-size: 0.8125rem;
+}
+
+.settings-tz-dl dt {
+  margin: 0;
+  color: var(--text-muted);
+  font-weight: 500;
+}
+
+.settings-tz-dl dd {
+  margin: 0;
+  color: var(--text);
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.75rem;
+}

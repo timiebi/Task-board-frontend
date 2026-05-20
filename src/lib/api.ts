@@ -19,8 +19,19 @@ function unwrapList<T>(data: T[] | { results: T[] }): T[] {
   return data.results ?? [];
 }
 
+export type TimeContext = {
+  requested_timezone: string | null;
+  effective_timezone: string;
+  source: "client" | "server_default" | "invalid_fallback";
+  today: string;
+  now: string;
+  server_timezone: string;
+  header_valid: boolean;
+};
+
 export const api = {
-  health: () => apiRequest<{ status: string }>("GET","/health/"),
+  health: () => apiRequest<{ status: string }>("GET", "/health/"),
+  timeContext: () => apiRequest<TimeContext>("GET", "/time-context/"),
   auth: {
     login: (username: string, password: string) =>
       apiRequest<{ token: string; user: { id: number; username: string; email: string } }>(

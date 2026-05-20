@@ -6,6 +6,7 @@ import { useAuth } from "@/context/AuthContext";
 import { useTheme, type Theme } from "@/context/ThemeContext";
 import { NotificationsSection } from "../settings/NotificationsSection";
 import { PeopleSection } from "../settings/PeopleSection";
+import { TimezoneSection } from "../settings/TimezoneSection";
 import { PageShell } from "../ui/PageShell";
 import { SurfacePanel } from "../ui/SurfacePanel";
 
@@ -53,6 +54,8 @@ export function SettingsPanel() {
         </section>
 
         <NotificationsSection />
+
+        <TimezoneSection />
 
         <PeopleSection />
 

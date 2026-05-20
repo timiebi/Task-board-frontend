@@ -1831,29 +1831,65 @@ ion-content.main-content {
   color: var(--muted);
 }
 
-.datetime-field-input-wrap {
-  position: relative;
+.datetime-field-tip {
+  margin: 0;
+}
+
+.datetime-field-combo {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+@media (max-width: 480px) {
+  .datetime-field-combo {
+    grid-template-columns: 1fr;
+  }
+}
+
+.datetime-field-date-wrap,
+.datetime-field-time-wrap {
   display: flex;
-  align-items: center;
+  align-items: stretch;
+  gap: 6px;
+  min-width: 0;
 }
 
-.datetime-field-icon {
-  position: absolute;
-  left: 12px;
-  width: 1rem;
-  height: 1rem;
-  color: var(--muted);
-  pointer-events: none;
-}
-
-.datetime-field-input {
-  padding-left: 2.5rem;
+.datetime-field-part {
+  flex: 1;
+  min-width: 0;
   color-scheme: light dark;
 }
 
-.datetime-field-input::-webkit-calendar-picker-indicator {
+.datetime-field-part::-webkit-calendar-picker-indicator {
   cursor: pointer;
-  opacity: 0.7;
+  opacity: 0.85;
+}
+
+.datetime-picker-btn {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.75rem;
+  min-height: 2.75rem;
+  padding: 0;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm, 8px);
+  background: var(--surface-elevated, var(--surface));
+  color: var(--accent);
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+
+.datetime-picker-btn:hover {
+  background: var(--surface-hover, rgba(255, 255, 255, 0.06));
+  border-color: var(--accent);
+}
+
+.datetime-picker-btn:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
 }
 
 .form-row-2 {

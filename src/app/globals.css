@@ -689,6 +689,37 @@ textarea {
   color: var(--muted);
 }
 
+.surface-toolbar-action {
+  margin-left: auto;
+  padding: 6px 10px;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--muted);
+  cursor: pointer;
+}
+
+.surface-toolbar-action:hover:not(:disabled) {
+  color: var(--text);
+  background: var(--surface);
+}
+
+.surface-toolbar-action--danger {
+  color: var(--danger);
+}
+
+.surface-toolbar-action--danger:hover:not(:disabled) {
+  color: var(--danger);
+  background: var(--danger-soft);
+}
+
+.surface-toolbar-action:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
 .surface-body {
   flex: 1;
   min-height: 0;
@@ -2173,10 +2204,48 @@ ion-content.main-content {
   color: var(--muted);
 }
 
+.notification-row-footer {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 10px;
+}
+
 .notification-row-actions {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
+  margin-right: auto;
+}
+
+.notification-row-delete {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+}
+
+.notification-row-delete:hover:not(:disabled) {
+  color: var(--danger);
+  background: var(--danger-soft);
+}
+
+.notification-row-delete:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.notification-row-delete ion-icon {
+  font-size: 18px;
 }
 
 .notification-row-full-body {

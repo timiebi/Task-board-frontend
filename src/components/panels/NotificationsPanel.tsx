@@ -1,15 +1,22 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
+import { IonIcon } from "@ionic/react";
+import { trashOutline } from "ionicons/icons";
 import {
   useNotifications,
   useSharedInbox,
   useSharingMutations,
 } from "@/hooks/queries";
+import {
+  CLEAR_ALL_ACTIVITY_MESSAGE,
+  notificationDeleteMessage,
+} from "@/lib/notification-messages";
 import type { AppNotification, SharedItem } from "@/lib/types";
 import { formatDateTime } from "@/lib/utils";
 import { ShareImportActions } from "../sharing/ShareImportActions";
 import { Button } from "../ui/Button";
+import { ConfirmModal } from "../ui/ConfirmModal";
 import { PageShell } from "../ui/PageShell";
 import { SurfacePanel } from "../ui/SurfacePanel";
 
@@ -90,12 +97,14 @@ function NotificationRow({
   onAccept,
   onDecline,
   onRead,
+  onDelete,
   busy,
 }: {
   notification: AppNotification;
   onAccept: (id: number) => void;
   onDecline: (connectionId: number) => void;
   onRead: (id: number) => void;
+  onDelete: (notification: AppNotification) => void;
   busy: boolean;
 }) {
   const connectionId = notification.payload.connection_id as number | undefined;
@@ -107,38 +116,49 @@ function NotificationRow({
         {notification.body && <p className="notification-row-body">{notification.body}</p>}
         <time className="notification-row-time">{formatDateTime(notification.created_at)}</time>
       </div>
-      {notification.kind === "connection_invite" && notification.action_required && (
-        <div className="notification-row-actions">
-          <Button
-            type="button"
-            onClick={() => onAccept(notification.id)}
-            loading={busy}
-            disabled={busy}
-          >
-            Accept
-          </Button>
-          {connectionId && (
+      <div className="notification-row-footer">
+        {notification.kind === "connection_invite" && notification.action_required && (
+          <div className="notification-row-actions">
             <Button
               type="button"
-              variant="ghost"
+              onClick={() => onAccept(notification.id)}
+              loading={busy}
               disabled={busy}
-              onClick={() => onDecline(connectionId)}
             >
-              Decline
+              Accept
             </Button>
-          )}
-        </div>
-      )}
-      {notification.kind === "item_shared" && !notification.is_read && (
-        <Button type="button" variant="ghost" onClick={() => onRead(notification.id)}>
-          Dismiss
-        </Button>
-      )}
-      {notification.kind === "connection_accepted" && !notification.is_read && (
-        <Button type="button" variant="ghost" onClick={() => onRead(notification.id)}>
-          Dismiss
-        </Button>
-      )}
+            {connectionId && (
+              <Button
+                type="button"
+                variant="ghost"
+                disabled={busy}
+                onClick={() => onDecline(connectionId)}
+              >
+                Decline
+              </Button>
+            )}
+          </div>
+        )}
+        {notification.kind === "item_shared" && !notification.is_read && (
+          <Button type="button" variant="ghost" onClick={() => onRead(notification.id)}>
+            Dismiss
+          </Button>
+        )}
+        {notification.kind === "connection_accepted" && !notification.is_read && (
+          <Button type="button" variant="ghost" onClick={() => onRead(notification.id)}>
+            Dismiss
+          </Button>
+        )}
+        <button
+          type="button"
+          className="notification-row-delete"
+          aria-label="Delete activity"
+          disabled={busy}
+          onClick={() => onDelete(notification)}
+        >
+          <IonIcon icon={trashOutline} aria-hidden />
+        </button>
+      </div>
     </article>
   );
 }
@@ -146,8 +166,17 @@ function NotificationRow({
 export function NotificationsPanel() {
   const { data: notifications = [], isLoading: loadingNotes } = useNotifications();
   const { data: inbox = [], isLoading: loadingInbox } = useSharedInbox();
-  const { acceptFromNotification, decline, markNotificationRead, markShareRead } =
-    useSharingMutations();
+  const {
+    acceptFromNotification,
+    decline,
+    markNotificationRead,
+    markShareRead,
+    deleteNotification,
+    clearAllNotifications,
+  } = useSharingMutations();
+
+  const [deleteTarget, setDeleteTarget] = useState<AppNotification | null>(null);
+  const [clearAllOpen, setClearAllOpen] = useState(false);
 
   const sortedNotes = useMemo(
     () =>
@@ -165,11 +194,41 @@ export function NotificationsPanel() {
     await decline.mutateAsync(connectionId);
   };
 
-  const busy = acceptFromNotification.isPending || decline.isPending;
+  const busy =
+    acceptFromNotification.isPending ||
+    decline.isPending ||
+    deleteNotification.isPending ||
+    clearAllNotifications.isPending;
+
+  const confirmDeleteOne = () => {
+    if (!deleteTarget) return;
+    const id = deleteTarget.id;
+    setDeleteTarget(null);
+    void deleteNotification.mutateAsync(id);
+  };
+
+  const confirmClearAll = () => {
+    setClearAllOpen(false);
+    void clearAllNotifications.mutateAsync();
+  };
 
   return (
     <PageShell title="Notifications" subtitle="Invites and shared items">
-      <SurfacePanel toolbarTitle="Activity">
+      <SurfacePanel
+        toolbarTitle="Activity"
+        toolbar={
+          sortedNotes.length > 0 ? (
+            <button
+              type="button"
+              className="surface-toolbar-action surface-toolbar-action--danger"
+              disabled={busy}
+              onClick={() => setClearAllOpen(true)}
+            >
+              Delete all
+            </button>
+          ) : undefined
+        }
+      >
         {loadingNotes ? (
           <p className="surface-loading">Loading…</p>
         ) : sortedNotes.length === 0 ? (
@@ -185,6 +244,7 @@ export function NotificationsPanel() {
                   onAccept={handleAccept}
                   onDecline={handleDecline}
                   onRead={(id) => void markNotificationRead.mutateAsync(id)}
+                  onDelete={setDeleteTarget}
                   busy={busy}
                 />
               </li>
@@ -212,6 +272,28 @@ export function NotificationsPanel() {
           </div>
         )}
       </SurfacePanel>
+
+      <ConfirmModal
+        open={deleteTarget !== null}
+        title="Delete this activity?"
+        message={deleteTarget ? notificationDeleteMessage(deleteTarget) : undefined}
+        confirmLabel="Delete"
+        variant="danger"
+        loading={deleteNotification.isPending}
+        onClose={() => setDeleteTarget(null)}
+        onConfirm={confirmDeleteOne}
+      />
+
+      <ConfirmModal
+        open={clearAllOpen}
+        title="Delete all activity?"
+        message={CLEAR_ALL_ACTIVITY_MESSAGE}
+        confirmLabel="Delete all"
+        variant="danger"
+        loading={clearAllNotifications.isPending}
+        onClose={() => setClearAllOpen(false)}
+        onConfirm={confirmClearAll}
+      />
     </PageShell>
   );
 }

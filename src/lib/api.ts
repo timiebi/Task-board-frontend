@@ -137,6 +137,13 @@ export const api = {
       apiRequest<{ count: number }>("GET", "/notifications/unread-count/"),
     markNotificationRead: (id: number) =>
       apiRequest<AppNotification>("POST", `/notifications/${id}/read/`),
+    deleteNotification: (id: number) =>
+      apiRequest<{ deleted_shared_item: boolean }>("DELETE", `/notifications/${id}/`),
+    clearAllNotifications: () =>
+      apiRequest<{ deleted_notifications: number; deleted_shared_items: number }>(
+        "POST",
+        "/notifications/clear-all/"
+      ),
     acceptInviteFromNotification: (id: number) =>
       apiRequest<{ connection: SpaceInvite; notification: AppNotification }>(
         "POST",

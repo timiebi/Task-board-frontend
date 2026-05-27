@@ -619,6 +619,14 @@ export function useSharingMutations() {
       mutationFn: (id: number) => api.sharing.markNotificationRead(id),
       onSuccess: invalidate,
     }),
+    deleteNotification: useMutation({
+      mutationFn: (id: number) => api.sharing.deleteNotification(id),
+      onSuccess: invalidate,
+    }),
+    clearAllNotifications: useMutation({
+      mutationFn: () => api.sharing.clearAllNotifications(),
+      onSuccess: invalidate,
+    }),
     markShareRead: useMutation({
       mutationFn: (id: number) => api.sharing.markShareRead(id),
       onSuccess: invalidate,

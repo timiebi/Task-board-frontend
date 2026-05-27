@@ -6,7 +6,6 @@ import {
   useSharedInbox,
   useSharingMutations,
 } from "@/hooks/queries";
-import { buildSharedCopyText } from "@/lib/share-content";
 import type { AppNotification, SharedItem } from "@/lib/types";
 import { formatDateTime } from "@/lib/utils";
 import { ShareImportActions } from "../sharing/ShareImportActions";
@@ -88,54 +87,24 @@ function SharedItemCard({
 
 function NotificationRow({
   notification,
-  inboxById,
   onAccept,
   onDecline,
   onRead,
   busy,
 }: {
   notification: AppNotification;
-  inboxById: Map<number, SharedItem>;
   onAccept: (id: number) => void;
   onDecline: (connectionId: number) => void;
   onRead: (id: number) => void;
   busy: boolean;
 }) {
   const connectionId = notification.payload.connection_id as number | undefined;
-  const sharedItemId = notification.payload.shared_item_id as number | undefined;
-  const inboxItem = sharedItemId ? inboxById.get(sharedItemId) : undefined;
-  const itemType = String(
-    notification.payload.item_type ?? inboxItem?.item_type ?? "task"
-  );
-  const fromUsername = String(
-    notification.payload.from_username ?? inboxItem?.shared_by_username ?? "someone"
-  );
-  const message = String(
-    notification.payload.message ?? inboxItem?.message ?? ""
-  );
-  const snapshot = (notification.payload.snapshot ??
-    inboxItem?.payload) as Record<string, unknown> | undefined;
-
-  const fullPreview =
-    notification.kind === "item_shared" && snapshot
-      ? buildSharedCopyText({
-          itemType,
-          fromUsername,
-          message,
-          snapshot,
-          notificationTitle: notification.title,
-          notificationBody: notification.body,
-        })
-      : null;
 
   return (
     <article className={`notification-row ${notification.is_read ? "" : "is-unread"}`}>
       <div className="notification-row-main">
         <h3 className="notification-row-title">{notification.title}</h3>
         {notification.body && <p className="notification-row-body">{notification.body}</p>}
-        {fullPreview && (
-          <pre className="notification-row-full-body">{fullPreview}</pre>
-        )}
         <time className="notification-row-time">{formatDateTime(notification.created_at)}</time>
       </div>
       {notification.kind === "connection_invite" && notification.action_required && (
@@ -160,21 +129,6 @@ function NotificationRow({
           )}
         </div>
       )}
-      {notification.kind === "item_shared" && sharedItemId && (
-        <ShareImportActions
-          sharedItemId={sharedItemId}
-          itemType={itemType}
-          fromUsername={fromUsername}
-          message={message}
-          snapshot={snapshot ?? {}}
-          notificationTitle={notification.title}
-          notificationBody={notification.body}
-          compact
-          onImported={() => {
-            if (!notification.is_read) onRead(notification.id);
-          }}
-        />
-      )}
       {notification.kind === "item_shared" && !notification.is_read && (
         <Button type="button" variant="ghost" onClick={() => onRead(notification.id)}>
           Dismiss
@@ -194,12 +148,6 @@ export function NotificationsPanel() {
   const { data: inbox = [], isLoading: loadingInbox } = useSharedInbox();
   const { acceptFromNotification, decline, markNotificationRead, markShareRead } =
     useSharingMutations();
-
-  const inboxById = useMemo(() => {
-    const map = new Map<number, SharedItem>();
-    for (const item of inbox) map.set(item.id, item);
-    return map;
-  }, [inbox]);
 
   const sortedNotes = useMemo(
     () =>
@@ -234,7 +182,6 @@ export function NotificationsPanel() {
               <li key={n.id}>
                 <NotificationRow
                   notification={n}
-                  inboxById={inboxById}
                   onAccept={handleAccept}
                   onDecline={handleDecline}
                   onRead={(id) => void markNotificationRead.mutateAsync(id)}

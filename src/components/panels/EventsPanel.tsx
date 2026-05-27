@@ -1,10 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Bell, BellRing, Plus, Trash2 } from "lucide-react";
 import { useReminderNotifyGate } from "@/hooks/useReminderNotifyGate";
 import { useEventMutations, useEvents } from "@/hooks/queries";
 import { hasActiveNotifications } from "@/lib/notifications-ready";
+import { consumePendingFocusForTab, focusByDataTarget } from "@/lib/pending-focus";
 import type { Event } from "@/lib/types";
 import {
   formatDateTime,
@@ -48,6 +49,17 @@ export function EventsPanel({
   const [deleteId, setDeleteId] = useState<number | null>(null);
   const notifyGate = useReminderNotifyGate();
   const saving = create.isPending || update.isPending;
+
+  useEffect(() => {
+    const target = consumePendingFocusForTab("events");
+    if (!target) return;
+    const focused = focusByDataTarget(target.type, target.id);
+    if (!focused) {
+      window.setTimeout(() => {
+        void focusByDataTarget(target.type, target.id);
+      }, 220);
+    }
+  }, [events]);
 
   const openCreate = () => {
     const e = emptyEvent();
@@ -144,7 +156,11 @@ export function EventsPanel({
           <ul className="surface-list">
             {events.map((event) => (
               <li key={event.id}>
-                <div className="surface-item surface-item--row">
+                <div
+                  className="surface-item surface-item--row"
+                  data-focus-type="event"
+                  data-focus-id={event.id}
+                >
                   <div className="surface-item-main">
                     <button
                       type="button"

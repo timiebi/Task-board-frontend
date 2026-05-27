@@ -1,10 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Plus, Trash2 } from "lucide-react";
 import { usePlanMutations, usePlans } from "@/hooks/queries";
 import type { Plan } from "@/lib/types";
 import { formatDate } from "@/lib/utils";
+import { consumePendingFocusForTab, focusByDataTarget } from "@/lib/pending-focus";
 import { ShareItemButton } from "../sharing/ShareItemButton";
 import { Modal } from "../Modal";
 import { Button } from "../ui/Button";
@@ -35,6 +36,17 @@ export function PlansPanel() {
   const [editing, setEditing] = useState<Partial<Plan> | null>(null);
   const [deleteId, setDeleteId] = useState<number | null>(null);
   const saving = create.isPending || update.isPending;
+
+  useEffect(() => {
+    const target = consumePendingFocusForTab("plans");
+    if (!target) return;
+    const focused = focusByDataTarget(target.type, target.id);
+    if (!focused) {
+      window.setTimeout(() => {
+        void focusByDataTarget(target.type, target.id);
+      }, 220);
+    }
+  }, [plans]);
 
   const openCreate = () => {
     setEditing(emptyPlan());
@@ -81,7 +93,12 @@ export function PlansPanel() {
         ) : (
           <>
             {plans.map((plan) => (
-              <article key={plan.id} className="surface-plan-card">
+              <article
+                key={plan.id}
+                className="surface-plan-card"
+                data-focus-type="plan"
+                data-focus-id={plan.id}
+              >
                 <div className="surface-item-row">
                   <h3 className="surface-item-title">{plan.title}</h3>
                   <span

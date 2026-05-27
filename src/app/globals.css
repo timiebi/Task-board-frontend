@@ -2193,6 +2193,27 @@ ion-content.main-content {
   color: var(--text);
 }
 
+.notification-row-main {
+  flex: 1;
+  min-width: 220px;
+  text-align: left;
+  padding: 0;
+  border: none;
+  background: transparent;
+}
+
+.notification-row-main.is-clickable {
+  cursor: pointer;
+}
+
+.notification-row-main.is-clickable:hover .notification-row-title {
+  color: var(--accent);
+}
+
+.notification-row-main:disabled {
+  cursor: default;
+}
+
 .notification-row-body {
   margin: 0 0 6px;
   font-size: 0.875rem;
@@ -2306,6 +2327,23 @@ ion-content.main-content {
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-sm);
   background: var(--surface-raised);
+}
+
+.focus-pulse {
+  animation: focusPulse 1.6s ease;
+}
+
+@keyframes focusPulse {
+  0% {
+    box-shadow: 0 0 0 0 color-mix(in srgb, var(--accent) 40%, transparent);
+    border-color: var(--accent);
+  }
+  70% {
+    box-shadow: 0 0 0 8px transparent;
+  }
+  100% {
+    box-shadow: none;
+  }
 }
 
 .shared-inbox-card.is-unread {

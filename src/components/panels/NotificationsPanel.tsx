@@ -8,10 +8,13 @@ import {
   useSharedInbox,
   useSharingMutations,
 } from "@/hooks/queries";
+import { useAppNavigate } from "@/context/NavigationContext";
 import {
   CLEAR_ALL_ACTIVITY_MESSAGE,
   notificationDeleteMessage,
 } from "@/lib/notification-messages";
+import { setPendingFocusTarget } from "@/lib/pending-focus";
+import { tabForImportTarget } from "@/lib/share-content";
 import type { AppNotification, SharedItem } from "@/lib/types";
 import { formatDateTime } from "@/lib/utils";
 import { ShareImportActions } from "../sharing/ShareImportActions";
@@ -94,6 +97,8 @@ function SharedItemCard({
 
 function NotificationRow({
   notification,
+  linkedShare,
+  onOpenShared,
   onAccept,
   onDecline,
   onRead,
@@ -101,6 +106,8 @@ function NotificationRow({
   busy,
 }: {
   notification: AppNotification;
+  linkedShare?: SharedItem;
+  onOpenShared: (item: SharedItem) => void;
   onAccept: (id: number) => void;
   onDecline: (connectionId: number) => void;
   onRead: (id: number) => void;
@@ -108,14 +115,20 @@ function NotificationRow({
   busy: boolean;
 }) {
   const connectionId = notification.payload.connection_id as number | undefined;
+  const canOpenShared = notification.kind === "item_shared" && !!linkedShare;
 
   return (
     <article className={`notification-row ${notification.is_read ? "" : "is-unread"}`}>
-      <div className="notification-row-main">
+      <button
+        type="button"
+        className={`notification-row-main ${canOpenShared ? "is-clickable" : ""}`}
+        disabled={!canOpenShared}
+        onClick={() => linkedShare && onOpenShared(linkedShare)}
+      >
         <h3 className="notification-row-title">{notification.title}</h3>
         {notification.body && <p className="notification-row-body">{notification.body}</p>}
         <time className="notification-row-time">{formatDateTime(notification.created_at)}</time>
-      </div>
+      </button>
       <div className="notification-row-footer">
         {notification.kind === "connection_invite" && notification.action_required && (
           <div className="notification-row-actions">
@@ -164,6 +177,7 @@ function NotificationRow({
 }
 
 export function NotificationsPanel() {
+  const { navigate } = useAppNavigate();
   const { data: notifications = [], isLoading: loadingNotes } = useNotifications();
   const { data: inbox = [], isLoading: loadingInbox } = useSharedInbox();
   const {
@@ -185,6 +199,12 @@ export function NotificationsPanel() {
       ),
     [notifications]
   );
+
+  const inboxBySharedId = useMemo(() => {
+    const map = new Map<number, SharedItem>();
+    for (const item of inbox) map.set(item.id, item);
+    return map;
+  }, [inbox]);
 
   const handleAccept = async (notificationId: number) => {
     await acceptFromNotification.mutateAsync(notificationId);
@@ -210,6 +230,16 @@ export function NotificationsPanel() {
   const confirmClearAll = () => {
     setClearAllOpen(false);
     void clearAllNotifications.mutateAsync();
+  };
+
+  const openSharedTarget = (item: SharedItem) => {
+    const tab = tabForImportTarget(item.item_type);
+    setPendingFocusTarget({
+      tab,
+      type: item.item_type,
+      id: item.item_id,
+    });
+    navigate(tab);
   };
 
   return (
@@ -241,6 +271,12 @@ export function NotificationsPanel() {
               <li key={n.id}>
                 <NotificationRow
                   notification={n}
+                  linkedShare={
+                    n.kind === "item_shared"
+                      ? inboxBySharedId.get(Number(n.payload.shared_item_id))
+                      : undefined
+                  }
+                  onOpenShared={openSharedTarget}
                   onAccept={handleAccept}
                   onDecline={handleDecline}
                   onRead={(id) => void markNotificationRead.mutateAsync(id)}

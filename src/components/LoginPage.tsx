@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useState } from "react";
 import { IonContent, IonIcon, IonPage, IonSpinner } from "@ionic/react";
 import { checkmarkCircleOutline, lockClosedOutline, personOutline } from "ionicons/icons";
@@ -97,7 +98,7 @@ export function LoginPage() {
                 {mode === "register" && (
                   <div className="auth-field">
                     <label className="label" htmlFor="auth-email">
-                      Email <span className="auth-optional">optional</span>
+                      Email <span className="auth-optional">recommended</span>
                     </label>
                     <div className="auth-input-wrap">
                       <IonIcon
@@ -116,6 +117,12 @@ export function LoginPage() {
                       />
                     </div>
                   </div>
+                )}
+
+                {mode === "login" && (
+                  <p className="auth-forgot">
+                    <Link href="/forgot-password">Forgot password?</Link>
+                  </p>
                 )}
 
                 <div className="auth-field">

@@ -139,6 +139,32 @@
   line-height: 1.4;
 }
 
+.auth-success {
+  margin: 0 0 14px;
+  padding: 10px 12px;
+  border-radius: var(--radius-sm);
+  background: var(--accent-soft);
+  color: var(--text);
+  font-size: 0.875rem;
+  line-height: 1.4;
+}
+
+.auth-success a {
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.auth-forgot {
+  margin: -4px 0 12px;
+  font-size: 0.875rem;
+  text-align: right;
+}
+
+.auth-forgot a {
+  color: var(--accent);
+  font-weight: 500;
+}
+
 .auth-submit {
   width: 100%;
   min-height: 48px;

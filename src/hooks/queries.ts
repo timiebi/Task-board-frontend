@@ -623,6 +623,20 @@ export function useSharingMutations() {
       mutationFn: (id: number) => api.sharing.markShareRead(id),
       onSuccess: invalidate,
     }),
+    importShare: useMutation({
+      mutationFn: ({ id, as }: { id: number; as: ShareableType }) =>
+        api.sharing.importShare(id, as),
+      onSuccess: (_data, { as }) => {
+        invalidate();
+        queryClient.invalidateQueries({ queryKey: queryKeys.tasks.root });
+        queryClient.invalidateQueries({ queryKey: queryKeys.notes.root });
+        queryClient.invalidateQueries({ queryKey: queryKeys.plans.root });
+        queryClient.invalidateQueries({ queryKey: queryKeys.events.root });
+        if (as === "task") {
+          queryClient.invalidateQueries({ queryKey: queryKeys.dashboard.all });
+        }
+      },
+    }),
   };
 }
 

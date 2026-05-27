@@ -48,6 +48,10 @@ export const api = {
     me: () =>
       apiRequest<{ id: number; username: string; email: string }>("GET", "/auth/me/"),
     logout: () => apiRequest<{ detail: string }>("POST", "/auth/logout/"),
+    requestPasswordReset: (email: string) =>
+      apiRequest<{ detail: string }>("POST", "/auth/password-reset/request/", { email }),
+    confirmPasswordReset: (body: { uid: string; token: string; password: string }) =>
+      apiRequest<{ detail: string }>("POST", "/auth/password-reset/confirm/", body),
   },
   notebooks: {
     list: () =>
@@ -121,6 +125,12 @@ export const api = {
     inbox: () => apiRequest<SharedItem[]>("GET", "/shares/inbox/"),
     markShareRead: (id: number) =>
       apiRequest<SharedItem>("POST", `/shares/${id}/read/`),
+    importShare: (id: number, as: ShareableType) =>
+      apiRequest<{ as: ShareableType; id: number; title: string }>(
+        "POST",
+        `/shares/${id}/import/`,
+        { as }
+      ),
     notifications: () =>
       apiRequest<AppNotification[]>("GET", "/notifications/"),
     unreadCount: () =>

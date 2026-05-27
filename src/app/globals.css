@@ -2179,6 +2179,52 @@ ion-content.main-content {
   gap: 8px;
 }
 
+.notification-row-full-body {
+  margin: 8px 0 0;
+  padding: 10px 12px;
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  border: 1px solid var(--border-subtle);
+  font-family: inherit;
+  font-size: 0.8125rem;
+  line-height: 1.45;
+  white-space: pre-wrap;
+  word-break: break-word;
+  color: var(--text-secondary);
+  max-height: 200px;
+  overflow: auto;
+}
+
+.share-import-actions {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border-subtle);
+}
+
+.share-import-actions--compact {
+  margin-top: 8px;
+  padding-top: 8px;
+}
+
+.share-import-actions-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.share-import-feedback {
+  font-size: 0.75rem;
+  color: var(--accent);
+}
+
+.share-import-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
 .shared-inbox-grid {
   display: flex;
   flex-direction: column;

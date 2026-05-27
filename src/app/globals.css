@@ -2315,6 +2315,15 @@ ion-content.main-content {
   gap: 6px;
 }
 
+.shared-inbox-notice {
+  margin: 0;
+  padding: 10px 16px;
+  font-size: 0.8125rem;
+  color: var(--text-secondary);
+  background: var(--accent-soft);
+  border-bottom: 1px solid var(--border-subtle);
+}
+
 .shared-inbox-grid {
   display: flex;
   flex-direction: column;

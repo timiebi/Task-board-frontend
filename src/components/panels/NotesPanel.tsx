@@ -18,7 +18,6 @@ import {
   useNotebooks,
   useNotes,
 } from "@/hooks/queries";
-import { consumePendingFocusForTab, focusByDataTarget } from "@/lib/pending-focus";
 import type { Note, Notebook } from "@/lib/types";
 import { relativeTime } from "@/lib/utils";
 import { ShareItemButton } from "../sharing/ShareItemButton";
@@ -59,22 +58,6 @@ export function NotesPanel() {
       if (prev && notes.find((n) => n.id === prev.id)) return prev;
       return notes[0];
     });
-  }, [notes]);
-
-  useEffect(() => {
-    const target = consumePendingFocusForTab("notes");
-    if (!target) return;
-    const note = notes.find((n) => n.id === target.id);
-    if (note) {
-      setSelectedNote(note);
-      setMobilePane("editor");
-    }
-    const focused = focusByDataTarget(target.type, target.id);
-    if (!focused) {
-      window.setTimeout(() => {
-        void focusByDataTarget(target.type, target.id);
-      }, 220);
-    }
   }, [notes]);
 
   const selectNote = (note: Note) => {
@@ -265,8 +248,6 @@ export function NotesPanel() {
                         selectedNote?.id === note.id ? "is-active" : ""
                       }`}
                       onClick={() => selectNote(note)}
-                      data-focus-type="note"
-                      data-focus-id={note.id}
                     >
                       <div className="notes-list-item-top">
                         {note.is_pinned && (

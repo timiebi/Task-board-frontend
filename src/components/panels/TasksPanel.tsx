@@ -1,12 +1,11 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { Bell, Plus, Trash2 } from "lucide-react";
 import { ShareItemButton } from "../sharing/ShareItemButton";
 import { useReminderNotifyGate } from "@/hooks/useReminderNotifyGate";
 import { useTaskMutations, useTasks } from "@/hooks/queries";
 import { hasActiveNotifications } from "@/lib/notifications-ready";
-import { consumePendingFocusForTab, focusByDataTarget } from "@/lib/pending-focus";
 import type { Task } from "@/lib/types";
 import {
   formatDateTime,
@@ -54,18 +53,6 @@ export function TasksPanel() {
   const saving = create.isPending || update.isPending;
   const { overdue, active, done } = useMemo(() => partitionTasks(tasks), [tasks]);
   const hasAnyTasks = overdue.length + active.length + done.length > 0;
-
-  useEffect(() => {
-    const target = consumePendingFocusForTab("tasks");
-    if (!target) return;
-    const retry = () => {
-      if (focusByDataTarget(target.type, target.id)) return;
-      window.setTimeout(() => {
-        void focusByDataTarget(target.type, target.id);
-      }, 220);
-    };
-    retry();
-  }, [tasks]);
 
   const openCreate = () => {
     setEditing(emptyTask());
@@ -388,8 +375,6 @@ function TaskListSection({
               className={`surface-item surface-item--row${
                 task.completed ? " is-done" : ""
               }`}
-              data-focus-type="task"
-              data-focus-id={task.id}
             >
               <input
                 type="checkbox"

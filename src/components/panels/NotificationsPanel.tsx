@@ -8,13 +8,11 @@ import {
   useSharedInbox,
   useSharingMutations,
 } from "@/hooks/queries";
-import { useAppNavigate } from "@/context/NavigationContext";
 import {
   CLEAR_ALL_ACTIVITY_MESSAGE,
   notificationDeleteMessage,
 } from "@/lib/notification-messages";
-import { setPendingFocusTarget } from "@/lib/pending-focus";
-import { tabForImportTarget } from "@/lib/share-content";
+import { focusSharedInboxItemWithRetry } from "@/lib/pending-focus";
 import type { AppNotification, SharedItem } from "@/lib/types";
 import { formatDateTime } from "@/lib/utils";
 import { ShareImportActions } from "../sharing/ShareImportActions";
@@ -56,15 +54,20 @@ function SharedBodyPreview({
 function SharedItemCard({
   item,
   onRead,
+  highlighted,
 }: {
   item: SharedItem;
   onRead: (id: number) => void;
+  highlighted?: boolean;
 }) {
   const payload = item.payload as Record<string, unknown>;
   const title = String(payload.title ?? "Something shared with you");
 
   return (
-    <article className={`shared-inbox-card ${item.read_at ? "" : "is-unread"}`}>
+    <article
+      className={`shared-inbox-card ${item.read_at ? "" : "is-unread"}${highlighted ? " focus-pulse" : ""}`}
+      data-shared-item-id={item.id}
+    >
       <header className="shared-inbox-card-header">
         <span className="shared-inbox-type">{item.item_type}</span>
         <span className="shared-inbox-from">from {item.shared_by_username}</span>
@@ -97,7 +100,6 @@ function SharedItemCard({
 
 function NotificationRow({
   notification,
-  linkedShare,
   onOpenShared,
   onAccept,
   onDecline,
@@ -106,8 +108,7 @@ function NotificationRow({
   busy,
 }: {
   notification: AppNotification;
-  linkedShare?: SharedItem;
-  onOpenShared: (item: SharedItem) => void;
+  onOpenShared: (notification: AppNotification, sharedItemId: number) => void;
   onAccept: (id: number) => void;
   onDecline: (connectionId: number) => void;
   onRead: (id: number) => void;
@@ -115,7 +116,9 @@ function NotificationRow({
   busy: boolean;
 }) {
   const connectionId = notification.payload.connection_id as number | undefined;
-  const canOpenShared = notification.kind === "item_shared" && !!linkedShare;
+  const sharedItemId = Number(notification.payload.shared_item_id);
+  const canOpenShared =
+    notification.kind === "item_shared" && Number.isFinite(sharedItemId) && sharedItemId > 0;
 
   return (
     <article className={`notification-row ${notification.is_read ? "" : "is-unread"}`}>
@@ -123,7 +126,7 @@ function NotificationRow({
         type="button"
         className={`notification-row-main ${canOpenShared ? "is-clickable" : ""}`}
         disabled={!canOpenShared}
-        onClick={() => linkedShare && onOpenShared(linkedShare)}
+        onClick={() => canOpenShared && onOpenShared(notification, sharedItemId)}
       >
         <h3 className="notification-row-title">{notification.title}</h3>
         {notification.body && <p className="notification-row-body">{notification.body}</p>}
@@ -177,7 +180,6 @@ function NotificationRow({
 }
 
 export function NotificationsPanel() {
-  const { navigate } = useAppNavigate();
   const { data: notifications = [], isLoading: loadingNotes } = useNotifications();
   const { data: inbox = [], isLoading: loadingInbox } = useSharedInbox();
   const {
@@ -191,6 +193,8 @@ export function NotificationsPanel() {
 
   const [deleteTarget, setDeleteTarget] = useState<AppNotification | null>(null);
   const [clearAllOpen, setClearAllOpen] = useState(false);
+  const [highlightedShareId, setHighlightedShareId] = useState<number | null>(null);
+  const [inboxNotice, setInboxNotice] = useState("");
 
   const sortedNotes = useMemo(
     () =>
@@ -199,12 +203,6 @@ export function NotificationsPanel() {
       ),
     [notifications]
   );
-
-  const inboxBySharedId = useMemo(() => {
-    const map = new Map<number, SharedItem>();
-    for (const item of inbox) map.set(item.id, item);
-    return map;
-  }, [inbox]);
 
   const handleAccept = async (notificationId: number) => {
     await acceptFromNotification.mutateAsync(notificationId);
@@ -232,14 +230,22 @@ export function NotificationsPanel() {
     void clearAllNotifications.mutateAsync();
   };
 
-  const openSharedTarget = (item: SharedItem) => {
-    const tab = tabForImportTarget(item.item_type);
-    setPendingFocusTarget({
-      tab,
-      type: item.item_type,
-      id: item.item_id,
+  const openSharedFromActivity = (
+    notification: AppNotification,
+    sharedItemId: number
+  ) => {
+    setInboxNotice("");
+    if (!notification.is_read) {
+      void markNotificationRead.mutateAsync(notification.id);
+    }
+    setHighlightedShareId(sharedItemId);
+    window.setTimeout(() => setHighlightedShareId(null), 1600);
+    focusSharedInboxItemWithRetry(sharedItemId, () => {
+      setInboxNotice(
+        "That shared item isn't in your inbox anymore. It may have been deleted."
+      );
+      window.setTimeout(() => setInboxNotice(""), 4000);
     });
-    navigate(tab);
   };
 
   return (
@@ -271,12 +277,7 @@ export function NotificationsPanel() {
               <li key={n.id}>
                 <NotificationRow
                   notification={n}
-                  linkedShare={
-                    n.kind === "item_shared"
-                      ? inboxBySharedId.get(Number(n.payload.shared_item_id))
-                      : undefined
-                  }
-                  onOpenShared={openSharedTarget}
+                  onOpenShared={openSharedFromActivity}
                   onAccept={handleAccept}
                   onDecline={handleDecline}
                   onRead={(id) => void markNotificationRead.mutateAsync(id)}
@@ -290,6 +291,11 @@ export function NotificationsPanel() {
       </SurfacePanel>
 
       <SurfacePanel toolbarTitle="Shared with you" className="mt-4">
+        {inboxNotice && (
+          <p className="shared-inbox-notice" role="status">
+            {inboxNotice}
+          </p>
+        )}
         {loadingInbox ? (
           <p className="surface-loading">Loading shared items…</p>
         ) : inbox.length === 0 ? (
@@ -302,6 +308,7 @@ export function NotificationsPanel() {
               <SharedItemCard
                 key={item.id}
                 item={item}
+                highlighted={highlightedShareId === item.id}
                 onRead={(id) => void markShareRead.mutateAsync(id)}
               />
             ))}

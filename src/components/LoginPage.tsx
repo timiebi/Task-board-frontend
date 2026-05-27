@@ -3,7 +3,8 @@
 import Link from "next/link";
 import { useState } from "react";
 import { IonContent, IonIcon, IonPage, IonSpinner } from "@ionic/react";
-import { checkmarkCircleOutline, lockClosedOutline, personOutline } from "ionicons/icons";
+import { checkmarkCircleOutline, personOutline } from "ionicons/icons";
+import { AuthPasswordInput } from "@/components/auth/AuthPasswordInput";
 import { useAuth } from "@/context/AuthContext";
 import { ApiError } from "@/lib/api";
 import { USER_MESSAGES } from "@/lib/user-messages";
@@ -129,18 +130,13 @@ export function LoginPage() {
                   <label className="label" htmlFor="auth-password">
                     Password
                   </label>
-                  <div className="auth-input-wrap">
-                    <IonIcon icon={lockClosedOutline} className="auth-input-icon" aria-hidden />
-                    <input
-                      id="auth-password"
-                      type="password"
-                      className="input auth-input"
-                      value={password}
-                      placeholder={mode === "register" ? "At least 8 characters" : "Your password"}
-                      autoComplete={mode === "login" ? "current-password" : "new-password"}
-                      onChange={(ev) => setPassword(ev.target.value)}
-                    />
-                  </div>
+                  <AuthPasswordInput
+                    id="auth-password"
+                    value={password}
+                    placeholder={mode === "register" ? "At least 8 characters" : "Your password"}
+                    autoComplete={mode === "login" ? "current-password" : "new-password"}
+                    onChange={setPassword}
+                  />
                 </div>
 
                 {error && (

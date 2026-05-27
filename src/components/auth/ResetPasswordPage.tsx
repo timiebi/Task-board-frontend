@@ -3,8 +3,8 @@
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useMemo, useState } from "react";
-import { IonContent, IonIcon, IonPage, IonSpinner } from "@ionic/react";
-import { lockClosedOutline } from "ionicons/icons";
+import { IonContent, IonPage, IonSpinner } from "@ionic/react";
+import { AuthPasswordInput } from "@/components/auth/AuthPasswordInput";
 import { api, ApiError } from "@/lib/api";
 import { USER_MESSAGES } from "@/lib/user-messages";
 import "@/app/auth.css";
@@ -79,35 +79,25 @@ export function ResetPasswordPage() {
                     <label className="label" htmlFor="reset-password">
                       New password
                     </label>
-                    <div className="auth-input-wrap">
-                      <IonIcon icon={lockClosedOutline} className="auth-input-icon" aria-hidden />
-                      <input
-                        id="reset-password"
-                        type="password"
-                        className="input auth-input"
-                        value={password}
-                        placeholder="At least 8 characters"
-                        autoComplete="new-password"
-                        onChange={(ev) => setPassword(ev.target.value)}
-                      />
-                    </div>
+                    <AuthPasswordInput
+                      id="reset-password"
+                      value={password}
+                      placeholder="At least 8 characters"
+                      autoComplete="new-password"
+                      onChange={setPassword}
+                    />
                   </div>
                   <div className="auth-field">
                     <label className="label" htmlFor="reset-confirm">
                       Confirm password
                     </label>
-                    <div className="auth-input-wrap">
-                      <IonIcon icon={lockClosedOutline} className="auth-input-icon" aria-hidden />
-                      <input
-                        id="reset-confirm"
-                        type="password"
-                        className="input auth-input"
-                        value={confirm}
-                        placeholder="Same as above"
-                        autoComplete="new-password"
-                        onChange={(ev) => setConfirm(ev.target.value)}
-                      />
-                    </div>
+                    <AuthPasswordInput
+                      id="reset-confirm"
+                      value={confirm}
+                      placeholder="Same as above"
+                      autoComplete="new-password"
+                      onChange={setConfirm}
+                    />
                   </div>
 
                   {error && (

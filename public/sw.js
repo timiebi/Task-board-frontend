@@ -122,7 +122,7 @@
 
 /* Task Board service worker — push notifications + resilient app cache */
 
-const CACHE = "taskboard-shell-v10";
+const CACHE = "taskboard-shell-v11";
 const SHELL_ASSETS = ["/manifest.webmanifest", "/icon.svg"];
 
 self.addEventListener("install", (event) => {
